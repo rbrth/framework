@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/crops/!svn/ver/1680/trunk/catkin/src/crops_general/crops_main/transitions
+END
+transitions.yaml
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/transitions/transitions.yaml
+END
+pathplanningtransitions.yaml
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/transitions/pathplanningtransitions.yaml
+END
+transitions_pepper.yaml
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/crops/!svn/ver/1680/trunk/catkin/src/crops_general/crops_main/transitions/transitions_pepper.yaml
+END
+transitions_kinect.yaml
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/transitions/transitions_kinect.yaml
+END

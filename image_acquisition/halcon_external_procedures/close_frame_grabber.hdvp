@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="613554073">
+<procedure name="close_frame_grabber">
+<interface>
+<ic>
+<par name="AcqHandle"/>
+</ic>
+</interface>
+<body>
+<c>* Close the framegrabber</c>
+<l>close_framegrabber (AcqHandle)</l>
+<l>return ()</l>
+</body>
+<docu id="close_frame_grabber">
+<parameters>
+<parameter id="AcqHandle"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

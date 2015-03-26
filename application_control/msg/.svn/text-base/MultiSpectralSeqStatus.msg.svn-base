@@ -1,0 +1,5 @@
+# the status of the multispectral acquisition sequence from filter 0...N
+# {succeeded,enqueued, error, etc.}
+
+Header header
+string status

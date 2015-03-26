@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="124617887">
+<procedure name="read_camera_parameters">
+<interface>
+<ic>
+<par name="CameraParametersPath"/>
+</ic>
+<oc>
+<par name="CamParam"/>
+</oc>
+</interface>
+<body>
+<l>read_cam_par (CameraParametersPath, CamParam)</l>
+<l>return ()</l>
+</body>
+<docu id="read_camera_parameters">
+<parameters>
+<parameter id="CamParam"/>
+<parameter id="CameraParametersPath"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

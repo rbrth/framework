@@ -1,0 +1,7 @@
+Header header
+int8 status
+int32 error_code
+uint8 manipulator_kinematic_configuration
+string status_description
+string error_code_description
+string manipulator_kinematic_configuration_description

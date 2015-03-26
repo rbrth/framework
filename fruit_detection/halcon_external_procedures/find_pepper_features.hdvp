@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0">
+<procedure name="find_pepper_features">
+<interface>
+<io>
+<par name="Image" base_type="iconic" dimension="0"/>
+</io>
+<ic>
+<par name="HueLowerThreshold" base_type="ctrl" dimension="0"/>
+<par name="HueUpperThreshold" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="cog_y" base_type="ctrl" dimension="0"/>
+<par name="cog_x" base_type="ctrl" dimension="0"/>
+<par name="size" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>  </c>
+<l>     dev_update_off()</l>
+<c>     </c>
+<c>     </c>
+<c>     * Decompose RGB in separate channels and transform this to Hue, Saturation and Intesity channels.</c>
+<l>     *decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<l>     *trans_from_rgb (ImageR, ImageG, ImageB, ImageResultH, ImageResultS, ImageResultI, 'hsv')</l>
+<c>     * Remove noise by smoothing the Hue channel.</c>
+<l>     *gauss_image (ImageResultH, ImageGauss, 9)</l>
+<c>     * Segment region in color range to get all red pixels in a range.</c>
+<l>     *threshold (ImageGauss, Regions, HueLowerThreshold, HueUpperThreshold)</l>
+<c>     </c>
+<c>     </c>
+<c>     * New segmentation in cielab. </c>
+<l>     *decompose3 (Image, ImageR, ImageG, ImageB) </l>
+<l>     *trans_from_rgb (ImageR, ImageG, ImageB, ImageResult1, ImageResult2, ImageResult3, 'yuv')</l>
+<l>     *threshold (ImageResult2, Regions, HueLowerThreshold, HueUpperThreshold)</l>
+<c>      </c>
+<c>     * Pepper Demo </c>
+<l>     decompose3 (Image, ImageR, ImageG, ImageB) </l>
+<l>     trans_from_rgb (ImageR, ImageG, ImageB, ImageResult1, ImageResult2, ImageResult3, 'hsv')</l>
+<l>     threshold (ImageResult1, Regions1, 0, 36)</l>
+<l>     threshold (ImageResult2, Regions2, 66, 136)</l>
+<l>     intersection(Regions1, Regions2, Regions)</l>
+<c>    </c>
+<c>     </c>
+<c>     </c>
+<c>     * Remove further small noise regions.</c>
+<l>     erosion_circle (Regions, RegionErosion, 2)</l>
+<l>     dilation_circle (RegionErosion, RegionDilation, 4)</l>
+<c></c>
+<c>     * Find connected components in the segmented regions.</c>
+<l>     connection (RegionDilation, ConnectedRegions)</l>
+<c>    </c>
+<l>     count_obj (ConnectedRegions, NumberOfRegions)</l>
+<l>     if(NumberOfRegions &gt; 0)</l>
+<l>          area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>          index_largest := -1</l>
+<l>          area_largest  := -1</l>
+<l>          for i := 1 to NumberOfRegions by 1</l>
+<c>          </c>
+<l>               if(Area[i-1] &gt; area_largest)</l>
+<l>                    index_largest := i</l>
+<l>                    area_largest := Area[i-1]</l>
+<l>               endif</l>
+<c>              </c>
+<l>          endfor</l>
+<l>          select_obj(ConnectedRegions, ObjectSelected, index_largest)</l>
+<l>          area_center (ObjectSelected, Area_Object, raw_cog_y, raw_cog_x)</l>
+<c>          </c>
+<l>          dev_get_window (CurrentWindowID)</l>
+<l>          get_image_size (Image, Width, Height)</l>
+<l>          if (CurrentWindowID != -1)</l>
+<l>               dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>               dev_display (Image)</l>
+<l>               if(area_largest &gt; 1500)</l>
+<l>                dev_set_color ('red')</l>
+<l>                dev_display (ObjectSelected)</l>
+<l>                dev_set_color ('blue')</l>
+<l>                gen_circle (Circle, raw_cog_y, raw_cog_x, 5)</l>
+<l>                dev_display (Circle)</l>
+<l>                dev_set_color ('white')</l>
+<l>                gen_arrow_contour_xld (Arrow, 240, 320, raw_cog_y, raw_cog_x,5, 5)</l>
+<l>                dev_display (Arrow)</l>
+<l>               endif</l>
+<l>               dev_update_off()</l>
+<l>          else</l>
+<l>               dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>               dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>               dev_display (Image)</l>
+<l>               if(area_largest &gt; 1500)</l>
+<l>                dev_set_color ('red')</l>
+<l>                dev_display (ObjectSelected)</l>
+<l>                dev_set_color ('blue')</l>
+<l>                gen_circle (Circle, raw_cog_y, raw_cog_x, 5)</l>
+<l>                dev_display (Circle)</l>
+<l>                dev_set_color ('white')</l>
+<l>                gen_arrow_contour_xld (Arrow, 240, 320, raw_cog_y, raw_cog_x,5, 5)</l>
+<l>                dev_display (Arrow)</l>
+<l>               endif</l>
+<c>               </c>
+<l>               dev_update_off() </l>
+<l>          endif</l>
+<c>     </c>
+<c>     * y has to be flipped due to the inversed coordinate system of Halcon.</c>
+<l>     cog_y := Height - raw_cog_y</l>
+<l>     cog_x := raw_cog_x   </l>
+<l>     size := area_largest </l>
+<l>     else</l>
+<l>     cog_y := -1</l>
+<l>     cog_x := -1</l>
+<l>     area_largest := -1</l>
+<l>     endif</l>
+<c>     </c>
+<l>return ()</l>
+</body>
+<docu id="find_pepper_features">
+<parameters>
+<parameter id="HueLowerThreshold"/>
+<parameter id="HueUpperThreshold"/>
+<parameter id="Image"/>
+<parameter id="cog_x"/>
+<parameter id="cog_y"/>
+<parameter id="size"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

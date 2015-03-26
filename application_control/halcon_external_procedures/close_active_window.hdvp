@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="603833065">
+<procedure name="close_active_window">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>return ()</l>
+</body>
+<docu id="close_active_window">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

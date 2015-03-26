@@ -1,0 +1,130 @@
+- start_state: PepperColdBoot
+- state:
+       state_label: PepperColdBoot
+       descriptive_name: PepperColdBoot
+       transitions:
+            System not ready : PepperColdBoot
+            System ready : PepperHomeSensorRig
+- state:
+       state_label: PepperHomeSensorRig
+       descriptive_name: Homing pepper sensor rig motor
+       transitions:
+            Homed : Ready
+- state:
+      state_label: Ready
+      descriptive_name: Ready State 
+      transitions:
+            WaitingForStart : Ready
+            Start : PepperMoveArmOutOfWorkspace
+- state:
+      state_label: PepperCollisionCheck
+      descriptive_name: Pepper detect collision
+      transitions:
+            NoCollision->PepperMoveArmIntoWorkspace : PepperMoveArmIntoWorkspace
+            NoCollision->PepperMoveArmOutOfWorkspace : PepperMoveArmOutOfWorkspace
+            NoCollision->PepperMoveToBasket : PepperMoveToBasket
+            NoCollision->PepperMoveToVisualServoStart : PepperMoveToVisualServoStart
+            CheckingCollision : PepperCollisionCheck
+            Collision : PepperError
+- state:
+       state_label: PepperMoveToHome
+       descriptive_name: Pepper move to home
+       transitions:
+            Moving : PepperMoveToHome 
+            HomePositionReached : PepperMoveArmOutOfWorkspace
+            Error : PepperError
+- state:
+       state_label: PepperMoveArmOutOfWorkspace
+       descriptive_name: Pepper move arm out of workspace
+       transitions:
+            CheckCollision : PepperCollisionCheck
+            Moving : PepperMoveArmOutOfWorkspace 
+            ArmOutOfWorkspace : PepperMoveSensorsIntoWorkspace
+            Error : PepperError
+- state:
+       state_label: PepperMoveSensorsIntoWorkspace
+       descriptive_name: Pepper sensors into workspace
+       transitions:
+            SensorsInWorkspace : PepperDetectFruit
+            Moving : PepperMoveSensorsIntoWorkspace 
+            Error : PepperError
+- state:
+      state_label: PepperDetectFruit
+      descriptive_name: Localizing fruits
+      transitions:
+            No fruit : PepperDetectFruit
+            Found fruit : PepperMoveSensorsOutOfWorkspace
+- state:
+       state_label: PepperMoveSensorsOutOfWorkspace
+       descriptive_name: Pepper sensors out of workspace
+       transitions:
+            SensorsOutOfWorkspace : PepperSelectFruitState
+            Moving : PepperMoveSensorsOutOfWorkspace 
+            Error : PepperError
+- state:
+       state_label: PepperMoveArmIntoWorkspace
+       descriptive_name: Pepper move arm into the workspace
+       transitions:
+            CheckCollision : PepperCollisionCheck
+            Moving : PepperMoveArmIntoWorkspace 
+            ArmIntoWorkspace : PepperSelectFruitState
+            Error : PepperError
+- state:
+      state_label: PepperSelectFruitState
+      descriptive_name: Selecting fruit to pick
+      transitions:
+            Fruit selected : PepperMoveToWaypoint_1
+            All fruits picked : Ready
+- state:
+      state_label: PepperMoveToWaypoint_1
+      descriptive_name: Moving arm to waypoint defined in launchfile
+      transitions:
+            Moving : PepperMoveToWaypoint_1 
+            WaypointPositionReached : PepperMoveToVisualServoStart
+            Error : PepperError
+- state:
+      state_label: PepperMoveToVisualServoStart
+      descriptive_name: Moving arm to visual servo starting point
+      transitions:
+            Moving : PepperMoveToVisualServoStart
+            Goal reached : PepperMoveToFruitStart
+            Out of reach : PepperSelectFruitState
+            CheckCollision : PepperCollisionCheck
+- state:
+      state_label: PepperMoveToFruitStart
+      descriptive_name: Moving arm to fruit start position
+      transitions:
+            PepperMoveToFruit : PepperMoveToFruit
+            PepperMoveToBasket : PepperMoveToWaypoint_2
+            Moving : PepperMoveToFruitStart 
+            Goal : PepperMoveToVisualServoStart
+            Out of reach : PepperSelectFruitState
+- state:
+      state_label: PepperMoveToFruit
+      descriptive_name: Moving arm to fruit
+      transitions:
+            Move to fruit : PepperMoveToFruit 
+            Goal : PepperMoveToFruitStart
+            Out of reach : PepperSelectFruitState
+            Retry : PepperMoveToFruitStart 
+- state:
+      state_label: PepperMoveToWaypoint_2
+      descriptive_name: Moving arm to waypoint defined in launchfile
+      transitions:
+            Moving : PepperMoveToWaypoint_2 
+            WaypointPositionReached : PepperMoveToBasket
+            Error : PepperError
+- state:
+      state_label: PepperMoveToBasket
+      descriptive_name: Pepper move arm to basket
+      transitions:
+            CheckCollision : PepperCollisionCheck
+            Moving : PepperMoveToBasket 
+            ArmAtBasket : PepperSelectFruitState
+            Error : PepperError
+- state:
+      state_label: PepperError
+      descriptive_name: Pepper system error 
+      transitions:
+            ErrorCleared : Ready
+            ErrorDetected : PepperError

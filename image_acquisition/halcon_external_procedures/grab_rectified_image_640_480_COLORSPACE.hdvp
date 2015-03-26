@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="720115764">
+<procedure name="grab_rectified_image_640_480_COLORSPACE">
+<interface>
+<oo>
+<par name="Image"/>
+</oo>
+<ic>
+<par name="AcqHandle"/>
+<par name="CamParam"/>
+</ic>
+</interface>
+<body>
+<c>* Grab next image and turn it into color. </c>
+<l>grab_image_async (ImageRaw, AcqHandle, -1)</l>
+<l>cfa_to_rgb (ImageRaw, ImageColor, 'bayer_gr', 'bilinear')</l>
+<c></c>
+<c>* Undistort taken image.</c>
+<l>change_radial_distortion_cam_par('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<l>change_radial_distortion_image (ImageColor, ImageColor, ImageRectified, CamParam, CamParamOut)</l>
+<c></c>
+<c>* Separate R, G and B channels</c>
+<l>decompose3 (ImageRectified, ImageR, ImageG, ImageB)</l>
+<c></c>
+<c>* Transform to color space so we can select all the red pixels.</c>
+<l>trans_from_rgb(ImageR, ImageG, ImageB, Image1, Image2, Image3, 'cielab')</l>
+<c></c>
+<c>* Threshold to get all the red pixels.</c>
+<l>threshold (Image2, Region, 122, 150)   </l>
+<c></c>
+<c>* erode and dilate to reduce small red pixel noise.</c>
+<l>*erosion_circle (Region, RegionErosion, 5)</l>
+<l>*dilation_circle (RegionErosion, RegionDilation, 6)</l>
+<c></c>
+<c>* Create a new image with only the red pixels as a mask.</c>
+<c></c>
+<l>*reduce_domain (ImageR, RegionDilation, Image)</l>
+<l>*overpaint_region (Image, RegionDilation, 0, 'fill')</l>
+<c></c>
+<l>get_image_size (ImageRectified, Width, Height)</l>
+<l>region_to_bin (Region, Image, 60, 255, Width, Height)</l>
+<c></c>
+<l>return ()</l>
+<c></c>
+</body>
+<docu id="grab_rectified_image_640_480_COLORSPACE">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="CamParam"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

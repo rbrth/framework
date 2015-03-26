@@ -1,0 +1,24 @@
+# ROS message for controlling the end-effector
+
+# see endeffectorwidget.hpp
+# 0 - Festo SP Gripper 1
+# 1 - Festo SP Gripper 2
+# 2 - Festo Apple Gripper 1
+# 3 - Precision Sprayer
+# 4 - other
+
+int8 endeffectortype
+
+
+# true - open
+bool gripper_status
+bool cutter_status
+
+# true - switched on
+bool led_status
+bool camera_status
+
+bool nozzle_status
+
+# 0-100 fan speed control
+int32 fan_speed

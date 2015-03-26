@@ -1,0 +1,69 @@
+#include <ros/ros.h>
+#include <crops_msgs/p2pAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+#include <crops_msgs/manipulatorState.h>
+#include <XmlRpcValue.h>
+#include <crops_msgs/tcpInfo.h>
+#include <crops_msgs/ImageRequest.h>
+#include <crops_msgs/ImageAcqStatus.h>
+#include <tf/transform_listener.h>
+#include <crops_msgs/SingleFruit.h>
+#include <crops_msgs/end_effector_command.h>
+#include <crops_msgs/EndEffectorStatus.h>
+
+#ifndef PEPPERMOVETOVISUALSERVOSTARTSTATE_H_
+#define PEPPERMOVETOVISUALSERVOSTARTSTATE_H_
+
+class Pepper_MoveToVisualServoStartState : public SimpleActionState<crops_msgs::p2pAction, crops_msgs::p2pGoal>
+{
+private:
+  ros::Publisher manipulator_state_pub_;
+  ros::NodeHandle n;
+  ros::Publisher PubManipulatorState;
+  bool xpc_target_;
+  int robot_speed;
+  float robot_speed_factor;
+  ros::Publisher end_effector_control;
+  ros::Subscriber end_effector_feedback;
+  ros::Publisher updateTCPsettings_;
+  XmlRpc::XmlRpcValue tcp_pos_;
+  ros::Publisher trigger_pub_vrm_;
+  ros::Publisher trigger_pub_pmd_;
+  std::string img_request_topic_vrm_;
+  std::string img_request_topic_pmd_;
+  ros::Subscriber fruit_detected_minicam;
+  bool collisionChecked;
+  std::string initial_parent_state;
+  std::string collision_parent_state;
+  crops_msgs::SingleFruit mini_cam_fruit;
+  bool mini_cam_fruit_detected;
+  tf::TransformListener transformation_listener;
+  map<string, boost::any> * data_;
+  std::string gripperType;
+
+  //end effector related
+  struct endeffector_st
+  {
+    bool fruit_not_removed;
+    bool gripping_failed;
+    bool fruit_removed;
+    bool cutter_ready;
+    bool gripping_successful;
+    bool gripper_ready;
+  };
+  endeffector_st end_effector_status;
+  crops_msgs::end_effector_command end_effector_command;
+
+public:
+  Pepper_MoveToVisualServoStartState();
+  virtual ~Pepper_MoveToVisualServoStartState();
+  void feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback);
+  std::string execute(std::map<std::string, boost::any> * data);
+  crops_msgs::Statistics stat_msg_;
+  std::string moveArm();
+  void correctPose();
+  void miniCamFeedbackCb(const crops_msgs::SingleFruit::ConstPtr& msg);
+  void ProcessEndEffectorStatus(const crops_msgs::EndEffectorStatus::ConstPtr& msg);
+};
+
+#endif /* PEPPERMOVETOVISUALSERVOSTARTSTATE_H_ */

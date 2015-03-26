@@ -1,0 +1,12 @@
+<launch>
+
+	<node name="halcon_node_1" pkg="halcon" type="hdev_engine" output="screen" respawn="true" >
+		<param name="program_path" 	type="str"	value="$(find halcon)/hdev_scripts/test.hdev" />
+		<param name="ext_proc_path" 	type="str"	value="$(find halcon)/procedures" />	
+	</node>
+
+
+
+
+
+</launch>

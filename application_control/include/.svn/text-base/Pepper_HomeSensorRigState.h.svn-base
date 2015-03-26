@@ -1,0 +1,29 @@
+#include <ros/ros.h>
+#include <crops_msgs/Fruits_req.h>
+#include <crops_msgs/Multiple_Affordances.h>
+#include <crops_state_machine/State.h>
+#include <crops_msgs/Statistics.h>
+#include <crops_msgs/p2pAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+#include <crops_msgs/manipulatorState.h>
+#include <crops_msgs/pepperSensorySystemMotorAction.h>
+
+#ifndef PEPPERHOMESENSORRIGSTATE_H
+#define PEPPERHOMESENSORRIGSTATE_H
+
+class Pepper_HomeSensorRigState : public SimpleActionState<crops_msgs::pepperSensorySystemMotorAction, crops_msgs::pepperSensorySystemMotorGoal >
+{
+private:
+  ros::NodeHandle nh_;
+  crops_msgs::Multiple_Affordances fruit_message_;
+  ros::ServiceClient fruit_clt_;
+  void printFruits();
+  crops_msgs::Statistics stat_msg_;
+
+public:
+  Pepper_HomeSensorRigState();
+  virtual ~Pepper_HomeSensorRigState();
+  std::string execute(std::map<std::string,boost::any> * data);
+};
+
+#endif // PEPPERHOMESENSORRIGSTATE_H

@@ -1,0 +1,33 @@
+- start_state: ColdBoot
+- state:
+       state_label: ColdBoot
+       descriptive_name: Waiting until system ready
+       transitions:
+            System ready : Ready
+            System not ready : ColdBoot
+- state:
+      state_label: Ready
+      descriptive_name: Ready State 
+      transitions:
+            Not ready : Ready
+            Start auto : Path_planning
+- state:
+      state_label: Path_planning
+      descriptive_name: Path Planning State
+      transitions:
+            Found_fruit : Select_fruit
+- state:
+      state_label: Select_fruit
+      descriptive_name: Selecting fruit to pick
+      transitions:
+            Fruit selected : Pick_fruit
+            All fruits picked : Ready
+
+- state:
+      state_label: Pick_fruit
+      descriptive_name: Moving arm to fruit
+      transitions:
+            Move to fruit : Pick_fruit 
+            Goal : Select_fruit
+            Out of reach : Select_fruit
+

@@ -1,0 +1,23 @@
+
+# for both apples and peppers
+float32 x_stem
+float32 y_stem
+float32 z_stem
+float32 confidence
+
+# for apples
+float32 CenterX
+float32 CenterY
+float32 CenterZ
+float32 Radius
+
+
+# for peppers
+float32 stemBaseRadius
+float32 bottomX
+float32 bottomY
+float32 bottomZ
+float32 bottomBaseRadius
+
+
+# Notice that the xyz values (of every fruit) are in the coordinate frame of the ToF SwissRanger camera (the camera's lense is the origin, x points left, y points up, z points away from the camera)

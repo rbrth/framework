@@ -1,0 +1,32 @@
+/*
+ * MoveArmState.h
+ *
+ *  Created on: Mar 20, 2012
+ *      Author: ringdahl
+ */
+#include <ros/ros.h>
+#include <crops_msgs/p2pAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+#include <crops_msgs/manipulatorState.h>
+
+#ifndef MOVETOFRUITSTATE_H_
+#define MOVETOFRUITSTATE_H_
+
+class MoveToFruitState : public SimpleActionState<crops_msgs::p2pAction, crops_msgs::p2pGoal>
+{
+private:
+  ros::Publisher manipulator_state_pub_;
+  ros::NodeHandle n;
+  ros::Publisher PubManipulatorState;
+  bool xpc_target_;//xpc target flag
+public:
+  MoveToFruitState();
+  virtual ~MoveToFruitState();
+  void feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback);
+  std::string execute(std::map<std::string, boost::any> * data);
+  crops_msgs::Statistics stat_msg_;
+
+
+};
+
+#endif /* MOVETOFRUITSTATE_H_ */

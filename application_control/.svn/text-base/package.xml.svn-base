@@ -1,0 +1,50 @@
+<package>
+  <name>crops_main</name>
+  <version>1.0.0</version>
+  <description>Main (control) program for each robot in the Crops project</description>
+  <maintainer email="ringdahl@cs.umu.se">Ola Ringdahl</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://www.crops-robots.eu/mediawiki/index.php/crops_main</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Ola Ringdahl</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>std_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>crops_manipulator_utils</build_depend>
+  <build_depend>diagnostic_msgs</build_depend>
+  <build_depend>diagnostic_updater</build_depend>
+  <build_depend>crops_msgs</build_depend>
+  <build_depend>crops_state_machine</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>std_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>crops_manipulator_utils</run_depend>
+  <run_depend>diagnostic_msgs</run_depend>
+  <run_depend>diagnostic_updater</run_depend>
+  <run_depend>crops_msgs</run_depend>
+  <run_depend>crops_state_machine</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>std_msgs</test_depend> -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>sensor_msgs</test_depend> -->
+  <!-- <test_depend>crops_manipulator_utils</test_depend> -->
+  <!-- <test_depend>diagnostic_msgs</test_depend> -->
+  <!-- <test_depend>diagnostic_updater</test_depend> -->
+  <!-- <test_depend>crops_msgs</test_depend> -->
+  <!-- <test_depend>crops_state_machine</test_depend> -->
+
+
+</package>

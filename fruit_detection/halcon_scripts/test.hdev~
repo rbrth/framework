@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.2.1" cs="12454971">
+<procedure name="main">
+<interface/>
+<body>
+<l>FinArea := 23.1</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

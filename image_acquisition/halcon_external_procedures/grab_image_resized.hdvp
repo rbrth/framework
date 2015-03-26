@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="647588206">
+<procedure name="grab_image_resized">
+<interface>
+<oo>
+<par name="RGBImage"/>
+</oo>
+<ic>
+<par name="AcqHandle"/>
+</ic>
+</interface>
+<body>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>cfa_to_rgb (Image, RGBImage, 'bayer_gr', 'bilinear')</l>
+<l>return ()</l>
+</body>
+<docu id="grab_image_resized">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="RGBImage"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

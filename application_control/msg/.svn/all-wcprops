@@ -1,0 +1,269 @@
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/crops/!svn/ver/1752/trunk/catkin/src/crops_msgs/msg
+END
+manipulatorState.msg
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/crops/!svn/ver/1630/trunk/catkin/src/crops_msgs/msg/manipulatorState.msg
+END
+EntireAcquisitionSequenceStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/EntireAcquisitionSequenceStatus.msg
+END
+manipulator_target_and_obstacle.msg
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/manipulator_target_and_obstacle.msg
+END
+manipulator_online_control.msg
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/manipulator_online_control.msg
+END
+tcpInfo.msg
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/tcpInfo.msg
+END
+MultiSpectralSeqStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/MultiSpectralSeqStatus.msg
+END
+manipulator_move2goal.msg
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/manipulator_move2goal.msg
+END
+fruit_model.msg
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/fruit_model.msg
+END
+cylinder.msg
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/cylinder.msg
+END
+ImageAcqStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/ImageAcqStatus.msg
+END
+Fruits.msg
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/Fruits.msg
+END
+ImageRegistrationStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/ImageRegistrationStatus.msg
+END
+Multiple_Affordances_Internal.msg
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/Multiple_Affordances_Internal.msg
+END
+FwheelMove2Goal.msg
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/FwheelMove2Goal.msg
+END
+Multiple_Affordances.msg
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/Multiple_Affordances.msg
+END
+sphere.msg
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/sphere.msg
+END
+jointStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/jointStatus.msg
+END
+VSRegistrationStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/VSRegistrationStatus.msg
+END
+JointControlGUI.msg
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/JointControlGUI.msg
+END
+Statistics.msg
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/Statistics.msg
+END
+SingleFruit.msg
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/crops/!svn/ver/1601/trunk/catkin/src/crops_msgs/msg/SingleFruit.msg
+END
+HomingError.msg
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/HomingError.msg
+END
+servoing.msg
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/crops/!svn/ver/1606/trunk/catkin/src/crops_msgs/msg/servoing.msg
+END
+RipenessMeasurement.msg
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/crops/!svn/ver/1752/trunk/catkin/src/crops_msgs/msg/RipenessMeasurement.msg
+END
+tcpPositions.msg
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/tcpPositions.msg
+END
+combinedVSRegisteredData.msg
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/combinedVSRegisteredData.msg
+END
+ManipulatorControlGUI.msg
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/ManipulatorControlGUI.msg
+END
+pepper_stems.msg
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/pepper_stems.msg
+END
+sensed_images.msg
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/sensed_images.msg
+END
+fruits_detected.msg
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/fruits_detected.msg
+END
+RegistrationStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/RegistrationStatus.msg
+END
+GripperControlGUI.msg
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/GripperControlGUI.msg
+END
+environmentInfo.msg
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/environmentInfo.msg
+END
+State.msg
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/crops/!svn/ver/1630/trunk/catkin/src/crops_msgs/msg/State.msg
+END
+end_effector_command.msg
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/end_effector_command.msg
+END
+tcpTrafo.msg
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/tcpTrafo.msg
+END
+changeState.msg
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/changeState.msg
+END
+joint_online_control.msg
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/joint_online_control.msg
+END
+PantiltMove2Goal.msg
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/PantiltMove2Goal.msg
+END
+EndEffectorStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/EndEffectorStatus.msg
+END
+Affordance.msg
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/Affordance.msg
+END
+combinedRegisteredData.msg
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/combinedRegisteredData.msg
+END
+ImageVSRegistrationStatus.msg
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/ImageVSRegistrationStatus.msg
+END
+ImageRequest.msg
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/crops/!svn/ver/1539/trunk/catkin/src/crops_msgs/msg/ImageRequest.msg
+END

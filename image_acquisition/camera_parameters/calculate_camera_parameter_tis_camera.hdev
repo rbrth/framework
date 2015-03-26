@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.2.1" cs="544267939">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 768, 576, 'black', WindowID)</l>
+<l>CalTabDescrName := '/home/ruud/Dropbox/halcon_scripts/calibration_model_125.descr'</l>
+<c></c>
+<c></c>
+<c>* To initialize the initial rough camera parameter (which are refined later in this script),</c>
+<c>* a calibration plate is searched and processed here.</c>
+<l>read_image(Image, '/home/ruud/Dropbox/halcon_scripts/tis_calibration_images/image02.png')</l>
+<l>find_caltab(Image, Caltab, '/home/ruud/Dropbox/halcon_scripts/calibration_model_125.descr', 3, 112, 5)</l>
+<c>*  find calibration marks and start pose</c>
+<l>find_marks_and_pose(Image, Caltab, '/home/ruud/Dropbox/halcon_scripts/calibration_model_125.descr' , \
+                    [0.008, 0.0, 0.0000022, 0.0000022, 320, 240, 640, 480], \
+                    128, 10, 18, 0.9, 15.0, 100.0, RCoord, CCoord, StartPose)</l>
+<c></c>
+<l>StartCamParam := [0.025,0.0,0.0,0.0,0.0,0.0,0.000011,0.000011,384.0,288.0,640,480]</l>
+<l>create_calib_data ('calibration_object', 1, 1, CalibDataID)</l>
+<l>set_calib_data_calib_object (CalibDataID, 0, CalTabDescrName)</l>
+<l>set_calib_data_cam_param (CalibDataID, 0, 'area_scan_polynomial', StartCamParam)</l>
+<c></c>
+<l>for I := 0 to 200 by 1</l>
+<l>    try    </l>
+<c>    * Read next image</c>
+<l>    read_image (Image, '/home/ruud/Dropbox/halcon_scripts/tis_calibration_images/image'+ I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    find_calib_object (Image, CalibDataID, 0, 0, I, [], [])</l>
+<c>    * Display the caltab and the marks found</c>
+<l>    get_calib_data_observ_contours (CalTab, CalibDataID, 'last_caltab', 0, 0, I)</l>
+<l>    get_calib_data_observ_contours (Marks, CalibDataID, 'marks', 0, 0, I)</l>
+<l>    get_calib_data_observ_points (CalibDataID, 0, 0, I, Row, Column, Index, Pose)</l>
+<l>    gen_circle (Circles, Row, Column, Row * 0.0 + 2.0)</l>
+<l>    dev_set_color ('green')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (CalTab)</l>
+<l>    dev_set_color ('magenta')</l>
+<l>    dev_set_line_width (1)</l>
+<l>    dev_display (Marks)</l>
+<l>    dev_set_line_width (3)</l>
+<l>    set_system ('flush_graphic', 'true')</l>
+<l>    dev_display (Circles)</l>
+<l>    set_system ('flush_graphic', 'false')</l>
+<l>    catch (Exception)</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+<c></c>
+<c>* *** C A M E R A    C A L I B R A T I O N ***</c>
+<l>calibrate_cameras (CalibDataID, Errors)</l>
+<l>get_calib_data (CalibDataID, 'camera', 0, 'params', CamParam)</l>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<c></c>
+<l>for I := 0 to 200 by 1</l>
+<l>    try</l>
+<l>    read_image (Image, '/home/ruud/Dropbox/halcon_scripts/tis_calibration_images/image'+ I$'02d')</l>
+<l>    dev_display (Image)</l>
+<l>    get_calib_data (CalibDataID, 'calib_obj_pose', [0,I], 'pose', FinalPose)</l>
+<c>    * Display of the calibration table</c>
+<l>    disp_caltab (WindowID, CalTabDescrName, CamParam, FinalPose, 1)</l>
+<l>    catch (Exception1)</l>
+<l>    endtry  </l>
+<l>endfor</l>
+<c></c>
+<c>* Save calculated inner camera parameters into file</c>
+<l>write_cam_par (CamParam, '/home/ruud/Dropbox/halcon_scripts/tis_camera_parameters.dat')</l>
+<l>clear_calib_data (CalibDataID)</l>
+<l>dev_update_window ('on')</l>
+<c></c>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<l>for I := 0 to 200 by 1</l>
+<l>    try</l>
+<l>        read_image (Image, '/home/ruud/Dropbox/halcon_scripts/tis_calibration_images/image'+ I$'02d')</l>
+<l>        change_radial_distortion_image (Image, Image, ImageRectified, CamParam, CamParamOut)</l>
+<l>        dev_display (ImageRectified)</l>
+<l>        stop()</l>
+<l>    catch (Exception2)</l>
+<l>    endtry</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="352453894">
+<procedure name="grab_rectified_image_640_480_GRAY">
+<interface>
+<oo>
+<par name="ImageRectifiedGray"/>
+</oo>
+<ic>
+<par name="AcqHandle"/>
+<par name="CamParam"/>
+</ic>
+</interface>
+<body>
+<l>try</l>
+<l>grab_image_async (ImageResized, AcqHandle, 500)</l>
+<c></c>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<l>change_radial_distortion_image (ImageResized, ImageResized, ImageRectifiedGray, CamParam, CamParamOut)</l>
+<l>catch (Exception)</l>
+<l>endtry</l>
+<l>return ()</l>
+</body>
+<docu id="grab_rectified_image_640_480_GRAY">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="CamParam"/>
+<parameter id="ImageRectifiedGray"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,4 @@
+# message from the UDP interface node to the JointControl widget
+
+uint32 jointNumber
+uint32 status

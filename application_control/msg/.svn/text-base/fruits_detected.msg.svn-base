@@ -1,0 +1,8 @@
+
+Header header
+
+int32 VSnumber
+int32 NumberOfDetections
+fruit_model[] arr
+
+# Notice that the xyz values (of every fruit) are in the coordinate frame of the ToF SwissRanger camera (the camera's lense is the origin, x points left, y points up, z points away from the camera)

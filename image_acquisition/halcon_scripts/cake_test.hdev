@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.2.1" cs="577436437">
+<procedure name="main">
+<interface/>
+<body>
+<c>*set a variable cake that can be requested in the ros node.</c>
+<l>cake_size := 23.1</l>
+<c></c>
+<c>*read an image of a cake.</c>
+<l>read_image (Image, '../images/cake.jpg' )</l>
+<c></c>
+<c>*open a new window and display the cake.</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,11 @@
+# message from the manipulator GUI to UDP interface node
+string button_type
+float64 desired_time
+float64 x   # x,y,z expressed in m in the manipulator's coordinate system
+float64 y
+float64 z
+float64 alpha
+float64 beta
+float64 gamma
+bool use_hardware
+# bool enablePDO

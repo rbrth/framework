@@ -1,0 +1,4 @@
+#message for manipulator tcp info
+
+geometry_msgs/Vector3 translation_vector
+float64[9] rotation_matrix 

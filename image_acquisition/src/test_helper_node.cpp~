@@ -1,0 +1,45 @@
+#include "ros/ros.h"
+#include <pepper_servo_package/request_servo_velocity_vector.h>
+#include <cstdlib>
+
+int main(int argc, char **argv)
+{
+     ros::init(argc, argv, "test_helper_node");
+     ros::NodeHandle n;
+     
+     ros::ServiceClient client = n.serviceClient<pepper_servo_package::request_servo_velocity_vector>("/pepper_servo/request_servo_velocity_vector");
+  
+     bool first = true;
+
+     ros::Rate rate(10.0);
+     while (n.ok())
+     {
+          if(first)
+          {
+               std::string request_message = "initialize";
+               
+               first = false;
+          }
+          else
+          {
+               std::string request_message = "cycle";
+          }
+          
+          pepper_servo_package::request_servo_velocity_vector srv;
+          srv.request.request_message = request_message;
+          
+          if (client.call(srv))
+          {
+              ROS_INFO("Calling");
+          }
+          else
+          {
+              ROS_INFO("NOT Calling");
+          }
+          ros::spinOnce();
+           rate.sleep();
+     }
+     
+     
+  return 0;
+}

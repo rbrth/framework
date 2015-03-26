@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.2.1" cs="118098349">
+<procedure name="main">
+<interface/>
+<body>
+<c>*open framegrabber and initialize camera parameters</c>
+<l>open_framegrabber ('Video4Linux2', 640, 480, 640, 480, 0, 0, 'progressive', 8, 'default', -1, 'false', 'auto', 'video1', 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'capture_format', 'GREY')</l>
+<l>set_framegrabber_param (AcqHandle, 'Binning', 4)</l>
+<l>set_framegrabber_param (AcqHandle, 'Exposure (Absolute)', 12)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainR', 0)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainG', 2)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainB', 2)</l>
+<c></c>
+<c>*grab 2 images, the first one often fails after framegrabber is opened</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>grab_image_resized (Image, AcqHandle)</l>
+<l>grab_image_resized (Image, AcqHandle)</l>
+<c></c>
+<c>*show image, do not forget to open window, otherwise will crash in external program.</c>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c></c>
+<c>* Find critical points</c>
+<l>critical_points_sub_pix (Image, 'facet', 5, 1, RowMin, ColumnMin, RowMax, ColumnMax, RowSaddle, ColSaddle)</l>
+<l>dev_set_color ('red')</l>
+<l>dev_set_line_width (3)</l>
+<l>for i := 0 to |RowSaddle| - 1 by 1</l>
+<l>    gen_cross_contour_xld (Cross, RowSaddle[i], ColSaddle[i], 25, 0.785398)</l>
+<l>    dev_display (Cross)</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+<c>*calculate image features.</c>
+<c></c>
+<l>point_1_x := -0.1</l>
+<l>point_1_y := -0.1</l>
+<l>point_1_z :=    0 </l>
+<c></c>
+<l>point_2_x :=  0.1</l>
+<l>point_2_y := -0.1</l>
+<l>point_2_z :=    0 </l>
+<c></c>
+<l>point_3_x :=  0.1</l>
+<l>point_3_y :=  0.1</l>
+<l>point_3_z :=    0 </l>
+<c></c>
+<l>point_4_x := -0.1</l>
+<l>point_4_y :=  0.1</l>
+<l>point_4_z :=    0 </l>
+<c></c>
+<c></c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="grab_image_resized">
+<interface>
+<oo>
+<par name="RGBImage"/>
+</oo>
+<ic>
+<par name="AcqHandle"/>
+</ic>
+</interface>
+<body>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>cfa_to_rgb (Image, RGBImage, 'bayer_gr', 'bilinear')</l>
+<l>return ()</l>
+</body>
+<docu id="grab_image_resized">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="RGBImage"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

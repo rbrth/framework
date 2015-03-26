@@ -1,0 +1,4 @@
+# Messages for device on sensory rig for acquiring syncronized images from several devices
+Header header
+int8   num_images
+bool   stereo

@@ -1,0 +1,7 @@
+# message from the manipulator_GUI to the UDP interface node
+# Joint Control
+
+bool start_stop
+uint32 jointNumber
+float64 position
+bool moving

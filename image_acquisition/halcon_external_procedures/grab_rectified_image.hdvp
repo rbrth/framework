@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="1003995160">
+<procedure name="grab_rectified_image">
+<interface>
+<oo>
+<par name="ImageRectified"/>
+</oo>
+<ic>
+<par name="AcqHandle"/>
+<par name="CamParam"/>
+</ic>
+</interface>
+<body>
+<c>* Grab next image and resize. Use this sequence to avoid grabbing artifacts.</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>cfa_to_rgb (Image, RGBImage, 'bayer_gr', 'bilinear')</l>
+<l>zoom_image_size (RGBImage, ImageResized, 640, 480, 'constant')</l>
+<c></c>
+<c>* Undistort taken image.</c>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<l>change_radial_distortion_image (ImageResized, ImageResized, ImageRectified, CamParam, CamParamOut)</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="grab_rectified_image">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="CamParam"/>
+<parameter id="ImageRectified"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

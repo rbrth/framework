@@ -1,0 +1,293 @@
+/*
+* Software License Agreement (BSD License)
+*
+* (C) 2014 Wageningen University & Research Centre, Wageningen UR Greenhouse Horticulture http://www.wageningenur.nl/greenhousehorticulture 
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "Pepper_MoveToBasketState.h"
+#include "std_msgs/Bool.h"
+
+using std::string;
+using std::map;
+
+
+Pepper_MoveToBasketState::Pepper_MoveToBasketState() :
+						  SimpleActionState("/p2pAction") //TODO: dependency on the name of the node is potential source of error
+{
+	PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+	end_effector_control = nh_.advertise<crops_msgs::end_effector_command> ("end_effector_control", 1000);
+    end_effector_feedback  = nh_.subscribe("end_effector_status",1,&Pepper_MoveToBasketState::ProcessEndEffectorStatus,this);
+
+	//collisionChecked = false;
+	collisionChecked = true;
+    first_ = true;
+
+    // init to a default
+    end_effector_status.fruit_not_removed 	=  NULL ;
+    end_effector_status.gripping_failed	=  NULL ;
+    end_effector_status.fruit_removed		=  NULL ;
+    end_effector_status.cutter_ready		=  NULL ;
+    end_effector_status.gripping_successful   =  NULL ;
+    end_effector_status.gripper_ready		=  NULL ;
+
+    // init to a default at beginning of this state
+    end_effector_command.endeffectortype = (int8_t) 1;	// Festo SP 2
+    end_effector_command.gripper_status  = false;		// open gripper
+    end_effector_command.cutter_status   = false;		// open cutter
+    end_effector_command.led_status 	  = false;		// lights off
+    end_effector_command.camera_status   = true;		// camera on;
+    end_effector_command.nozzle_status   = false;		// no nozzle for pepper
+    end_effector_command.fan_speed       = 0;
+
+    //end_effector_control.publish(end_effector_command);
+
+
+}
+
+Pepper_MoveToBasketState::~Pepper_MoveToBasketState()
+{
+
+}
+
+
+// end effector callback function
+void Pepper_MoveToBasketState::ProcessEndEffectorStatus(const crops_msgs::EndEffectorStatus::ConstPtr& msg)
+{
+  end_effector_status.fruit_not_removed 	=  msg->fruit_not_removed ;
+  end_effector_status.gripping_failed	=  msg->gripping_failed ;
+  end_effector_status.fruit_removed		=  msg->fruit_removed ;
+  end_effector_status.cutter_ready		=  msg->cutter_ready ;
+  end_effector_status.gripping_successful   =  msg->gripping_successful ;
+  end_effector_status.gripper_ready		=  msg->gripper_ready ;
+}
+
+/**
+ * Feedback from the arm.
+ */
+void Pepper_MoveToBasketState::feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback)
+{
+	ROS_INFO("#GUI Progress: %.0f %%", feedback->progress * 100);	
+}
+
+
+/*
+ * Main executing function:
+ * - Sets goal.
+ * - Checks on collision.
+ * - Moves the arm if safe.
+ */
+string Pepper_MoveToBasketState::execute(map<string, boost::any> * data)
+{
+	string state_transition;
+
+	// When not yet checked on a collision, determine goal and perform collision detection.
+	if(!collisionChecked)
+	{
+		ROS_ERROR("MoveToBasket state should never come in here (!collisionChecked)-- please check code");
+		// Determine the goal.
+     	goal_ = determineGoal();
+		(*data)["arm_goal"] = goal_;
+
+		// Let collision state know which state calls him.
+		std::string state_name 	 		= "PepperMoveToBasket";
+		(*data)["collision_parent_state"]   	= state_name;
+
+		collisionChecked	= true;
+		state_transition 	= "CheckCollision";
+		return state_transition;
+	}
+	// When checked on a collision, move the arm.
+	else
+	{
+		return moveArm();
+	}
+}
+
+
+/**
+ * Moves arm to goal and checks on feedback.
+ */
+std::string Pepper_MoveToBasketState::moveArm()
+{
+	string state_transition;
+
+	// When collision is checked (and there was no collision, otherwise the state machine does not return to this state),
+	// then check if the movement is started.
+	if (first_)
+	{
+		// Movement will be started so we set this variable to false.
+		first_ = false;
+
+		// Movement can either be simulated or real.
+		if (n.getParam("/crops_manipulator_udp/xpc_target", xpc_target))
+		{
+			ROS_INFO("crops_manipulator_udp/xpc_target parameter is existing");
+			
+			if(xpc_target==false)
+			{
+				ROS_INFO("  xpc_target=false (simulator)");
+			}
+			else
+			{
+				ROS_INFO("  xpc_target=true (real arm)");
+			}
+		}
+		else
+		{
+			ROS_WARN("crops_manipulator_udp/xpc_target parameter is not set!");
+		}
+
+		goal_ = determineGoal();
+    
+
+		if (n.hasParam("/robot_speed"))
+		{
+			ros::param::get("/robot_speed", robot_speed);
+			//ROS_INFO("robot_speed=%i", robot_speed);
+			if (robot_speed==0) robot_speed=1;
+		}
+		else
+		{
+			ROS_WARN("rosparam /robot_speed is not set");
+			robot_speed=100;
+		}
+		robot_speed_factor = 100.0/(float)robot_speed;
+		ROS_INFO("=== robot_speed=%d, robot_speed_factor=%.2f", robot_speed, robot_speed_factor);
+		ROS_INFO("=== robot desired time=%.2f",3 * robot_speed_factor);
+		goal_.desired_time = 3 * robot_speed_factor; // in seconds
+    	//goal_.desired_time = 3;
+   		goal_.use_hardware = xpc_target;
+   		goal_.pathMode = 0;
+
+		ROS_INFO("MoveToBasketState moves to position (%.2f %.2f %.2f) ", goal_.goal_pose.position.x, goal_.goal_pose.position.y, goal_.goal_pose.position.z);
+
+		setFeedbackCallback(boost::bind(&Pepper_MoveToBasketState::feedbackCb, this, _1));
+	    //sleep(3);
+		sendGoal();
+		//sleep(1);
+
+	}
+
+
+	// Movement has started so we request the current state of the movement.
+	// Depending on what is returned, action is undertaken.
+	actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+	switch (current_state_.state_)
+	{
+
+	case actionlib::SimpleClientGoalState::SUCCEEDED:
+
+		// Movement has finished.
+		// Reset control parameters to initial value.
+		first_ 			= true;
+		collisionChecked 	= false;
+
+		// Double check is goal is actually reached
+		if (ac_.getResult()->reached_goal)
+		{
+			ROS_INFO("#GUI Arm moved to basket");
+
+			// open gripper to release fruit
+			end_effector_command.gripper_status  = false;		// open gripper
+			end_effector_command.cutter_status   = false;		// open cutter
+			end_effector_control.publish(end_effector_command);
+
+			//bool fruit_missed # a fruit has been missed
+			//bool fruit_damaged  # a fruit has been damaged
+			//bool fruit_harvested  # a fruit has been harvested
+			//uint32 fruit_count # No. of fruits found
+			//string start_tot_clock # "start" or "stop" total time clock
+			//string start_fruit_clock  # "start" or "stop" fruit time clock
+			//bool reset_stats # reset all statistics and clocks to zero
+			stat_msg_.fruit_harvested = true;
+			stat_msg_.start_fruit_clock = "stop";
+			stat_pub_.publish(stat_msg_);
+
+        	state_transition = "ArmAtBasket";
+		}
+		else
+		{
+			ROS_WARN("#GUI Arm could not move to basket - motion not possible!!, ac_.getResult()->reached_goal==false");
+			first_ 			= true;
+			collisionChecked 	= false;
+			state_transition = "Error";
+		}
+		break;
+
+	case actionlib::SimpleClientGoalState::PREEMPTED:
+
+		ROS_WARN("#GUI Arm could not move to basket");
+		// Movement has finished.
+		// Reset control parameters to initial value.
+		first_ 			= true;
+		collisionChecked 	= false;
+		state_transition = "Error";
+		break;
+
+	default:
+		state_transition = "Moving";
+		break;
+	}
+
+	  // TODO testing only: set collisionChecked=true always to prevent collision check
+    collisionChecked = true;
+	return state_transition;
+}
+
+
+
+/**
+ * Determines what the next goal is. In this state it is a hardcoded position.
+ */
+crops_msgs::p2pGoal Pepper_MoveToBasketState::determineGoal()
+{
+	// Determine next goal
+	crops_msgs::p2pGoal goal;
+
+        nh_.getParam("fruit_bin_position", fruit_bin_position_);
+    	for (int32_t i = 0; i < fruit_bin_position_.size(); ++i)
+    	{
+      		ROS_ASSERT(fruit_bin_position_[i].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+    	}
+
+    	goal.goal_pose.position.x = fruit_bin_position_[0];
+    	goal.goal_pose.position.y = fruit_bin_position_[1];
+    	goal.goal_pose.position.z = fruit_bin_position_[2];
+    	goal.goal_pose.orientation.x = fruit_bin_position_[3];
+     	goal.goal_pose.orientation.y = fruit_bin_position_[4];
+    	goal.goal_pose.orientation.z = fruit_bin_position_[5];
+    	goal.goal_pose.orientation.w = fruit_bin_position_[6];
+
+        goal.pathMode = 0;
+
+	return goal;
+}

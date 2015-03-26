@@ -1,0 +1,22 @@
+#include <ros/ros.h>
+#include <crops_msgs/MotionPlannerReq.h>
+#include <crops_msgs/moveRealArmGoal.h>
+#include <crops_state_machine/State.h>
+
+#ifndef MOTIONPLANNINGSTATE_H
+#define MOTIONPLANNINGSTATE_H
+
+class MotionPlanningState : public State
+{
+private:
+  ros::NodeHandle nh_;
+  ros::ServiceClient motion_planning_clt_;
+  crops_msgs::Statistics stat_msg_;
+
+public:
+  MotionPlanningState();
+  virtual ~MotionPlanningState();
+  std::string execute(std::map<std::string,boost::any> * data);
+};
+
+#endif // MOTIONPLANNINGSTATE_H

@@ -1,0 +1,171 @@
+/*
+* Software License Agreement (BSD License)
+*
+* Copyright (c) 2014,Umeå University
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
+ * ColdBoot.cpp
+ *
+ *  Created on: Apr 12, 2012
+ *  Author: Peter Hohnloser
+ */
+
+#include "Pepper_ColdBootState.h"
+
+
+Pepper_ColdBootState::Pepper_ColdBootState()
+{
+  system_ready = false;
+  sub_ = nh_.subscribe("diagnostics_agg", 1, &Pepper_ColdBootState::diagnosticsCallback, this);
+  PubManipulatorState = nh_.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+
+  end_effector_control = nh_.advertise<crops_msgs::end_effector_command> ("end_effector_control", 1000);
+  end_effector_feedback  = nh_.subscribe("end_effector_status",1,&Pepper_ColdBootState::ProcessEndEffectorStatus,this);
+
+  nh_.getParam("tcp_position", tcp_pos_);
+  updateTCPsettings_ = nh_.advertise<crops_msgs::tcpInfo>("tcp_info",1);
+
+  img_request_topic_sr_.clear(); 
+  img_request_topic_avt_.clear();
+  nh_.getParam("img_req_topic_sr",img_request_topic_sr_);
+  nh_.getParam("img_req_topic_avt",img_request_topic_avt_);
+  trigger_pub_sr_  = nh_.advertise<crops_msgs::ImageRequest>(img_request_topic_sr_,1);
+  trigger_pub_avt_ = nh_.advertise<crops_msgs::ImageRequest>(img_request_topic_avt_,1);
+
+    // init to a default
+   	end_effector_status.fruit_not_removed 	=  NULL ;
+    end_effector_status.gripping_failed	=  NULL ;
+    end_effector_status.fruit_removed		=  NULL ;
+    end_effector_status.cutter_ready		=  NULL ;
+    end_effector_status.gripping_successful   =  NULL ;
+    end_effector_status.gripper_ready		=  NULL ;
+
+    // init to a default at beginning of this state
+    end_effector_command.endeffectortype = (int8_t) 1;	// Festo SP 2
+    end_effector_command.gripper_status  = false;		// open gripper
+    end_effector_command.cutter_status   = false;		// open cutter
+    end_effector_command.led_status 	  = false;		// lights off
+    end_effector_command.camera_status   = true;		// camera on;
+    end_effector_command.nozzle_status   = false;		// no nozzle for pepper
+    end_effector_command.fan_speed       = 0;
+
+}
+
+// end effector callback function
+void Pepper_ColdBootState::ProcessEndEffectorStatus(const crops_msgs::EndEffectorStatus::ConstPtr& msg)
+{
+  end_effector_status.fruit_not_removed 	=  msg->fruit_not_removed ;
+  end_effector_status.gripping_failed	=  msg->gripping_failed ;
+  end_effector_status.fruit_removed		=  msg->fruit_removed ;
+  end_effector_status.cutter_ready		=  msg->cutter_ready ;
+  end_effector_status.gripping_successful   =  msg->gripping_successful ;
+  end_effector_status.gripper_ready		=  msg->gripper_ready ;
+}
+
+
+/**
+ * Callback function for diagnostic messages. Gets called everytime a new diagnostics_agg message arrives
+ */
+void Pepper_ColdBootState::diagnosticsCallback(const diagnostic_msgs::DiagnosticArray::ConstPtr& msg)
+{
+  int max = OK;
+  std::vector<diagnostic_msgs::DiagnosticStatus> sts = msg->status;
+  for (std::vector<diagnostic_msgs::DiagnosticStatus>::iterator iter = sts.begin(); iter != sts.end(); iter++)
+  {
+    if (iter->level > max)
+      max = iter->level;
+  }
+  system_ready = false;
+  if (max == OK)
+  {
+    system_ready = true;
+  }
+}
+
+std::string Pepper_ColdBootState::execute(std::map<std::string, boost::any> * data)
+{
+
+	//Do a reset once hotfix
+   	crops_msgs::manipulatorState stateReset;
+  	stateReset.status = -1;
+  	stateReset.error_code = 0;
+  	ROS_INFO("Coldboot: Sent reset state to manipulator.");
+  	PubManipulatorState.publish(stateReset);
+	sleep(5);
+
+   	//Set Tool Center Point position from launchfile (main_control_pepper.launch)
+   	crops_msgs::tcpInfo msg;
+   	msg.tcp_tooltype = 0;
+   	msg.tcp_transform.translation.x = tcp_pos_[0];
+    	msg.tcp_transform.translation.y = tcp_pos_[1];
+    	msg.tcp_transform.translation.z = tcp_pos_[2];
+    	msg.tcp_transform.rotation.x = tcp_pos_[3];
+    	msg.tcp_transform.rotation.y = tcp_pos_[4];
+    	msg.tcp_transform.rotation.z = tcp_pos_[5];
+	msg.tcp_transform.rotation.w = tcp_pos_[6];
+
+    	updateTCPsettings_.publish(msg);
+	ROS_INFO("Tool Center Point pose updated.");
+
+	//Trigger camera's hotfix
+	crops_msgs::ImageRequest img_req_msg;
+	img_req_msg.header.stamp = ros::Time::now();
+	img_req_msg.num_images = 1;
+	img_req_msg.stereo = false;
+	trigger_pub_sr_.publish(img_req_msg);
+	trigger_pub_avt_.publish(img_req_msg);
+
+	// set end-effector to default state as defined in Pepper_ColdBootState()
+	end_effector_command.led_status = true;
+	end_effector_command.cutter_status   = true;		// close cutter
+	end_effector_command.gripper_status  = true;		// close gripper
+	end_effector_control.publish(end_effector_command);
+	sleep(2);
+	end_effector_command.led_status = false;
+	end_effector_command.cutter_status   = false;		// open cutter
+	end_effector_command.gripper_status  = false;		// open gripper
+	end_effector_control.publish(end_effector_command);
+
+
+	ROS_INFO("End-effector set to inital state, mini camera on.");
+	// TODO check gripper ready status
+
+
+  if (system_ready)
+  {
+    system_ready = false;
+    ROS_INFO("#GUI System ready");
+    return "System ready";
+  }
+  return "System not ready";
+}

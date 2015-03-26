@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="100004619">
+<procedure name="find_area_pepper">
+<interface>
+<io>
+<par name="Image"/>
+</io>
+<ic>
+<par name="HueLowerThreshold"/>
+<par name="HueUpperThreshold"/>
+</ic>
+<oc>
+<par name="Area_Object"/>
+</oc>
+</interface>
+<body>
+<c>  </c>
+<l>     dev_update_off()</l>
+<c>     </c>
+<c>     * Decompose RGB in separate channels and transform this to Hue, Saturation and Intesity channels.</c>
+<l>     *decompose3 (Image, ImageR, ImageG, ImageB)</l>
+<l>     *trans_from_rgb (ImageR, ImageG, ImageB, ImageResultH, ImageResultS, ImageResultI, 'hsv')</l>
+<c>     * Remove noise by smoothing the Hue channel.</c>
+<l>     *gauss_image (ImageResultH, ImageGauss, 9)</l>
+<c>     * Segment region in color range to get all red pixels in a range.</c>
+<l>     *threshold (ImageGauss, Regions, HueLowerThreshold, HueUpperThreshold)</l>
+<c>     </c>
+<c>     * New segmentation in cielab. </c>
+<l>     decompose3 (Image, ImageR, ImageG, ImageB) </l>
+<l>     trans_from_rgb (ImageR, ImageG, ImageB, ImageResult1, ImageResult2, ImageResult3, 'cielab')</l>
+<l>     threshold (ImageResult2, Regions, HueLowerThreshold, HueUpperThreshold)</l>
+<c>     </c>
+<c>     * Remove further small noise regions.</c>
+<l>     erosion_circle (Regions, RegionErosion, 2)</l>
+<l>     dilation_circle (RegionErosion, RegionDilation, 4)</l>
+<c></c>
+<c>     * Find connected components in the segmented regions.</c>
+<l>     connection (RegionDilation, ConnectedRegions)</l>
+<c>    </c>
+<l>     count_obj (ConnectedRegions, NumberOfRegions)</l>
+<l>     if(NumberOfRegions &gt; 0)</l>
+<l>          area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>          index_largest := -1</l>
+<l>          area_largest  := -1</l>
+<l>          for i := 1 to NumberOfRegions by 1</l>
+<c>          </c>
+<l>               if (Area[i-1] &gt; area_largest)</l>
+<l>                    index_largest := i</l>
+<l>                    area_largest := Area[i-1]</l>
+<l>               endif</l>
+<c>              </c>
+<l>          endfor</l>
+<l>          select_obj(ConnectedRegions, ObjectSelected, index_largest)</l>
+<l>          area_center (ObjectSelected, Area_Object, raw_cog_y, raw_cog_x) </l>
+<c>          </c>
+<c></c>
+<l>dev_get_window (CurrentWindowID)</l>
+<l>if (CurrentWindowID != -1)</l>
+<l>     dev_set_window(CurrentWindowID)</l>
+<l>     dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>     dev_display (Image)</l>
+<l>     dev_set_color ('red')</l>
+<l>     dev_display(ObjectSelected)</l>
+<l>     dev_update_off()</l>
+<l>else</l>
+<l>     get_image_size (Image, Width, Height)</l>
+<l>     dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>     dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>     dev_set_color ('red')</l>
+<l>     dev_display(ObjectSelected)</l>
+<l>     dev_display (Image)</l>
+<l>     dev_update_off()   </l>
+<l>endif</l>
+<c>          </c>
+<l>     else</l>
+<l>          Area_Object := 0</l>
+<l>     endif</l>
+<c>     </c>
+<l>return ()</l>
+</body>
+<docu id="find_area_pepper">
+<parameters>
+<parameter id="Area_Object"/>
+<parameter id="HueLowerThreshold"/>
+<parameter id="HueUpperThreshold"/>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

@@ -1,0 +1,5 @@
+# message to for desired end-effector velocity for online control
+# Contact: christoph.schuetz@tum.de
+
+float64[9] v
+

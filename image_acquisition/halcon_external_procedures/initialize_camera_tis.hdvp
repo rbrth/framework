@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="157316203">
+<procedure name="initialize_camera_tis">
+<interface>
+<ic>
+<par name="Gain"/>
+<par name="GainR"/>
+<par name="GainG"/>
+<par name="GainB"/>
+<par name="Exposure"/>
+<par name="CameraParametersPath"/>
+</ic>
+<oc>
+<par name="AcqHandle"/>
+<par name="CamParam"/>
+</oc>
+</interface>
+<body>
+<c>* Open framegrabber and adjust the parameters (color, exposure).</c>
+<l>open_framegrabber ('Video4Linux2', 1, 1, 0, 0, 0, 0, 'progressive', 8, 'default', -1, 'false', 'auto', 'video1', 0, -1, AcqHandle)</l>
+<c></c>
+<l>*set_framegrabber_param (AcqHandle, 'grab_timeout', 50)</l>
+<l>*set_framegrabber_param (AcqHandle, 'frame_interval', 0.1)</l>
+<c></c>
+<c></c>
+<l>set_framegrabber_param (AcqHandle, 'Exposure (Absolute)', Exposure)</l>
+<l>set_framegrabber_param (AcqHandle, 'Gain' , Gain)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainR', GainR)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainG', GainG)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainB', GainB)</l>
+<c></c>
+<c>* Read in camera parameters from file.</c>
+<l>read_cam_par (CameraParametersPath, CamParam)</l>
+<c></c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="initialize_camera_tis">
+<parameters>
+<parameter id="AcqHandle"/>
+<parameter id="CamParam"/>
+<parameter id="CameraParametersPath"/>
+<parameter id="Exposure"/>
+<parameter id="Gain"/>
+<parameter id="GainB"/>
+<parameter id="GainG"/>
+<parameter id="GainR"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

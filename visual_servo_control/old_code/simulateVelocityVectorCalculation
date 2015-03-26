@@ -1,0 +1,217 @@
+/***************************************************************************************************
+ *
+ *   This service can be called to test an image based visual servo control simulation.
+ *   Each call to this service returns the next velocity vector.
+ *
+ **************************************************************************************************/	          
+bool simulateVelocityVectorCalculation(visual_servo_control::request_servo_velocity_vector::Request &req, visual_servo_control::request_servo_velocity_vector::Response &res)
+{
+	// This part of the function gets locked if it is still calculating the next velocity
+	// vector in the servo application. Hence, this service will return false if it is still busy. 
+	ROS_INFO("Service called (simulateVelocityVectorCalculation)");
+	std::string request_message = req.request_message.c_str();
+	if(!program_lock)
+	{
+	     ROS_INFO("Program not locked, starting simulateVelocityVectorCalculation");
+		program_lock = true;
+          try {
+               // If the servo simulation is not yet initialized, then initialize global variables.
+               // The control message is compared to the incoming request message.
+               std::string control_message = "initialize";
+               if(!simulation_initialized && request_message == control_message)
+               {                    
+                    ROS_INFO("Initializaing simulation");
+                    // Then we define four 3D points that represent the corners of a 20cm by 20cm square. 
+                    point[0].setWorldCoordinates(-0.1,-0.1, 0);
+                    point[1].setWorldCoordinates( 0.1,-0.1, 0);
+                    point[2].setWorldCoordinates( 0.1, 0.1, 0);
+                    point[3].setWorldCoordinates(-0.1, 0.1, 0);
+                  
+                    // Output the coordinates as markers for RVIZ to visualize.
+                    for (int i = 0 ; i < 4 ; i++) 
+                    {
+                       visualization_msgs::Marker marker;                  
+                       marker.header.frame_id     = "/base";
+                       marker.header.stamp        = ros::Time::now();
+                       marker.ns                  = ros::this_node::getName().c_str();
+                       marker.id                  = i;
+                       marker.type                = visualization_msgs::Marker::CYLINDER;
+                       marker.action              = visualization_msgs::Marker::ADD;
+                       marker.pose.position.x     = point[i].get_oX();
+                       marker.pose.position.y     = point[i].get_oY();
+                       marker.pose.position.z     = point[i].get_oZ();           
+                       marker.pose.orientation.x  = 0.0;
+                       marker.pose.orientation.y  = 0.0;
+                       marker.pose.orientation.z  = 0.0;
+                       marker.pose.orientation.w  = 1.0;
+                       marker.scale.x             = 0.05;
+                       marker.scale.y             = 0.05;
+                       marker.scale.z             = 0.001;
+                       marker.color.r             = 1.0f;
+                       marker.color.g             = 0.0f;
+                       marker.color.b             = 0.0f;
+                       marker.color.a             = 1.0;
+                       goal_marker_publisher.publish(marker);
+                       // A very short sleep is required otherwise only 
+                       // a part of the markers are published.
+                       ros::Duration(0.001).sleep();
+                    }
+                    
+                    
+                    // The instantiation of the visual servo task is done with the next lines. 
+                    // We initialize the task as an eye in hand visual servo. Resulting velocities computed 
+                    // by the controller are those that should be applied in the camera frame: Vc 
+                    // The interaction matrix will be computed from the current visual features. Thus they 
+                    // need to be updated at each iteration of the control loop. Finally, the constant gain 
+                    // lambda is set to 0.5. 
+                    task.setServo(vpServo::EYEINHAND_CAMERA);
+                    task.setInteractionMatrixType(vpServo::CURRENT);
+                    task.setLambda(0.5);
+                    
+                    // It is now time to define four visual features as points in the image-plane. 
+                    // To this end we instantiate the vpFeaturePoint class. The current point feature s is 
+                    // implemented in p[i]. The desired point feature s* is implemented in pd[i]. 
+                    // Each feature is obtained by computing the position of the 3D points in the corresponding 
+                    // camera frame, and then by applying the perspective projection. Once current and desired 
+                    // features are created, they are added to the visual servo task. 
+                    for (unsigned int i = 0 ; i < 4 ; i++) 
+                    {
+                         point[i].track(cdMo);
+                         vpFeatureBuilder::create(pd[i], point[i]);
+                         point[i].track(cMo);
+                         vpFeatureBuilder::create(p[i], point[i]);
+                         task.addFeature(p[i], pd[i]);
+                    }
+                    
+                    // Here we also specify the sampling time to 0.040 seconds. When a velocity is applied 
+                    // to the camera, this time will be used by the exponential map to determine the next 
+                    // position of the camera.
+                    robot.setSamplingTime(0.040);
+    
+                    // From the initial position wMc of the camera and the position of the object 
+                    // previously fixed in the camera frame cMo, we compute the position of the object in the 
+                    // world frame wMo. Since in our simulation the object is static, wMo will remain unchanged.
+                    robot.getPosition(wMc);
+                    wMo = wMc * cMo;
+                    
+                    // Update simulated camera pose to starting pose. 
+                    vpTranslationVector sim_cam_translation;
+                    vpQuaternionVector  sim_cam_rotation;    
+                    cMo.extract(sim_cam_translation);
+                    cMo.extract(sim_cam_rotation);
+                    
+                    //ROS_INFO("Quaternion.x: %f", sim_cam_rotation.x());
+                    //ROS_INFO("Quaternion.y: %f", sim_cam_rotation.y());
+                    //ROS_INFO("Quaternion.z: %f", sim_cam_rotation.z());
+                    //ROS_INFO("Quaternion.w: %f", sim_cam_rotation.w());
+                   
+                    simulated_camera_position = tf::Vector3(sim_cam_translation[0], sim_cam_translation[1], sim_cam_translation[2]);
+                    simulated_camera_rotation = tf::Quaternion(sim_cam_rotation.x(), sim_cam_rotation.y(), sim_cam_rotation.z(), sim_cam_rotation.w());
+
+                    // The servo loop will start at iteration zero.
+                    iteration = 0;
+              			     
+                    simulation_initialized = true;
+               }  
+               else
+               {
+                    // When initialized, perform servo loop.
+                    std::string control_message = "cycle";
+                    if(simulation_initialized && request_message == control_message)
+                    {
+                         // Now we can enter in the visual servo loop. When a velocity is applied to our free 
+                         // flying camera, the position of the camera frame wMc will evolve wrt the world frame. 
+                         // From this position we compute the position of object in the new camera frame.      
+                         ROS_INFO("Simulating at iteration: %d", iteration);
+                         if(iteration < 150)
+                         {
+                              robot.getPosition(wMc);
+                              
+                              // From the initial position wMc of the camera and the position of the object previously 
+                              // fixed in the camera frame cMo, we compute the position of the object in the world 
+                              // frame wMo. Since in our simulation the object is static, wMo will remain unchanged.
+                              cMo = wMc.inverse() * wMo;
+                              
+                              // The current visual features are then updated by projecting the 3D points in the 
+                              // image-plane associated to the new camera location cMo. 
+                              for (unsigned int i = 0 ; i < 4 ; i++) 
+                              {
+                                   point[i].track(cMo);
+                                   vpFeatureBuilder::create(p[i], point[i]);
+                              }
+                              // Finally, the velocity skew v is computed. 
+                              vpColVector v = task.computeControlLaw();
+                              
+                              // This 6-dimension velocity vector is then applied to the camera.
+                              robot.setVelocity(vpRobot::CAMERA_FRAME, v);
+                              
+                              // Print detailed info about the current task.
+                              //task.print();
+                              
+                              // Fill and send velocity vector as response to this service.
+                              std::vector<double> velocity_vector(6);
+                              velocity_vector[0] = v.operator[](0); 
+                              velocity_vector[1] = v.operator[](1); 
+                              velocity_vector[2] = v.operator[](2); 
+                              velocity_vector[3] = v.operator[](3); 
+                              velocity_vector[4] = v.operator[](4); 
+                              velocity_vector[5] = v.operator[](5); 
+                              
+                              // Send response.
+                              res.servo_velocity_vector = velocity_vector;
+		                    ROS_INFO("Velocity vector has been sent: %f %f %f %f %f %f", velocity_vector[0], velocity_vector[1], velocity_vector[2], velocity_vector[3], velocity_vector[4], velocity_vector[5]);
+
+                              // Update simulated camera pose. 
+                              vpTranslationVector sim_cam_translation;
+                              vpQuaternionVector  sim_cam_rotation;    
+                              cMo.extract(sim_cam_translation);
+                              cMo.extract(sim_cam_rotation);
+                              
+                              //ROS_INFO("Quaternion.x: %f", sim_cam_rotation.x());
+                              //ROS_INFO("Quaternion.y: %f", sim_cam_rotation.y());
+                              //ROS_INFO("Quaternion.z: %f", sim_cam_rotation.z());
+                              //ROS_INFO("Quaternion.w: %f", sim_cam_rotation.w());
+                             
+                              simulated_camera_position = tf::Vector3(sim_cam_translation[0], sim_cam_translation[1], sim_cam_translation[2]);
+                              simulated_camera_rotation = tf::Quaternion(sim_cam_rotation.x(), sim_cam_rotation.y(), sim_cam_rotation.z(), sim_cam_rotation.w());
+
+                              // increase iteration for next step in the servo loop.
+                              iteration++; 
+                         }
+                         else
+                         {
+                              ROS_INFO("Simulation done.");
+                         
+                              // Before exiting the program, we free all the memory by killing the task. 
+                              task.kill();
+                              
+                              // We also want to reset the initialization for the next call.
+                              simulation_initialized = false;
+                         }
+                    }
+                    else
+                    {
+                          if(!simulation_initialized)
+                          {
+                              ROS_INFO("Simulation not yet initialized.");
+                          }
+                          if(request_message != control_message )
+                          {
+                              ROS_INFO("Wrong request message, use: %s", control_message.c_str() );
+                          }
+                    }
+               }       
+          }
+          catch(vpException e) 
+          {
+               ROS_INFO("Could not simulate image based visual servo control.");
+          }     
+     	program_lock = false;
+		return true;
+     }
+	else
+	{
+		ROS_INFO("Visual servo calculation currently already executing and service is therefore locked.");
+		return false;
+	}
+}         			          

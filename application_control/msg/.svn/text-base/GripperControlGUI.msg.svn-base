@@ -1,0 +1,3 @@
+# message from the manipulator GUI to UDP interface node
+
+bool GripperClosed

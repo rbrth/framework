@@ -1,0 +1,8 @@
+# Information about the Environment
+
+Header header
+
+geometry_msgs/Vector3 fruit_position
+geometry_msgs/Vector3 fruit_orientation
+
+geometry_msgs/Point stem

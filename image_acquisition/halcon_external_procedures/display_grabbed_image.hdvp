@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="945922485">
+<procedure name="display_grabbed_image">
+<interface>
+<io>
+<par name="Image"/>
+</io>
+</interface>
+<body>
+<c>* Display image. You have to open a window yourself for use in HDevEngine.</c>
+<l>dev_get_window (CurrentWindowID)</l>
+<l>if (CurrentWindowID != -1)</l>
+<l>     dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>     dev_display (Image)</l>
+<l>     dev_update_off()</l>
+<l>else</l>
+<l>     get_image_size (Image, Width, Height)</l>
+<l>     dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>     dev_resize_window_fit_image (Image, 0, 0, -1, -1)</l>
+<l>     dev_display (Image)</l>
+<l>     dev_update_off()   </l>
+<l>endif</l>
+<l>return ()</l>
+</body>
+<docu id="display_grabbed_image">
+<parameters>
+<parameter id="Image"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

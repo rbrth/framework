@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.0" halcon_version="11.0.3.4" cs="233675104">
+<procedure name="main">
+<interface/>
+<body>
+<c>* Open framegrabber and adjust the parameters (color, exposure)</c>
+<l>open_framegrabber ('Video4Linux2', 1, 1, 0, 0, 0, 0, 'progressive', 8, 'default', -1, 'false', 'auto', 'video1', 0, -1, AcqHandle)</l>
+<l>set_framegrabber_param (AcqHandle, 'Exposure (Absolute)', 100)</l>
+<l>set_framegrabber_param (AcqHandle, 'Gain' , 16)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainR', 10)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainG', 10)</l>
+<l>set_framegrabber_param (AcqHandle, 'GainB', 24)</l>
+<c></c>
+<c>* Grab next image and resize. Use this sequence to avoid grabbing artifacts.</c>
+<l>grab_image_start (AcqHandle, -1)</l>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>grab_image_async (Image, AcqHandle, -1)</l>
+<l>cfa_to_rgb (Image, RGBImage, 'bayer_gr', 'bilinear')</l>
+<l>zoom_image_size (RGBImage, ImageResized, 640, 480, 'constant')</l>
+<c></c>
+<c>* Read camera parameters and undistort taken image.</c>
+<l>read_cam_par ('/home/ruud/Dropbox/halcon_scripts/tis_camera_parameters.dat', CamParam)</l>
+<l>change_radial_distortion_cam_par ('fixed', CamParam, [0.0,0.0,0.0,0.0,0.0], CamParamOut)</l>
+<l>change_radial_distortion_image (ImageResized, ImageResized, ImageRectified, CamParam, CamParamOut)</l>
+<c></c>
+<c>* Display window. If used in HDev engine, you must open window here. </c>
+<l>get_image_size (ImageRectified, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (ImageRectified)</l>
+<c></c>
+<c>* Close the framegrabber</c>
+<l>close_framegrabber (AcqHandle)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

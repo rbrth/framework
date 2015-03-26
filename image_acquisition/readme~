@@ -1,0 +1,9 @@
+In order simulate
+
+ $ roslaunch pepper_servo_package pepper_servo_package.launch 
+
+
+
+ $ rosservice call /visual_servo_control_node/request_servo_velocity_vector '{ request_message: "initialize" }'
+ $ rosservice call /visual_servo_control_node/request_servo_velocity_vector '{ request_message: "cycle" }'
+ 

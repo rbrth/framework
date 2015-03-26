@@ -1,0 +1,294 @@
+/*
+* Software License Agreement (BSD License)
+*
+* Copyright (c) 2014,Umeå University
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/**
+ * State for moving the arm to a fruit coordinate using actionlib interface
+ *
+ * Author Ola Ringdahl, ringdahl@cs.umu.se
+ */
+
+#include "Pepper_MoveToFruitState.h"
+
+using std::string;
+using std::map;
+
+Pepper_MoveToFruitState::Pepper_MoveToFruitState() :
+    SimpleActionState("/p2pAction") // name of the actionlib server node // Note RB: it is called a harvest_client in the TUM Gui ?
+{
+  PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+  //check if xpc_simulator or xpcTarget Hardware should be used
+  ros::param::get("/crops_manipulator_udp/xpc_target", xpc_target_);
+  manipulator_state_pub_ = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1);
+  updateTCPsettings_ = n.advertise<crops_msgs::tcpInfo>("tcp_info",1);
+  marker_pub = n.advertise<visualization_msgs::Marker>( "fruit_orientation", 0 );
+
+  end_effector_control = n.advertise<crops_msgs::end_effector_command> ("end_effector_control", 1000);
+  end_effector_feedback  = n.subscribe("end_effector_status",1,&Pepper_MoveToFruitState::ProcessEndEffectorStatus,this);
+ 
+  // init to a default
+  end_effector_status.fruit_not_removed 	=  NULL ;
+  end_effector_status.gripping_failed	=  NULL ;
+  end_effector_status.fruit_removed		=  NULL ;
+  end_effector_status.cutter_ready		=  NULL ;
+  end_effector_status.gripping_successful   =  NULL ;
+  end_effector_status.gripper_ready		=  NULL ;
+
+  // init to a default at beginning of this state
+  end_effector_command.endeffectortype = (int8_t) 1;	// Festo SP 2
+  end_effector_command.gripper_status  = false;		// open gripper
+  end_effector_command.cutter_status   = false;		// open cutter
+  end_effector_command.led_status 	  = false;		// lights off
+  end_effector_command.camera_status   = true;		// camera on;
+  end_effector_command.nozzle_status   = false;		// no nozzle for pepper
+  end_effector_command.fan_speed       = 0;
+
+  end_effector_control.publish(end_effector_command);
+
+}
+
+Pepper_MoveToFruitState::~Pepper_MoveToFruitState()
+{
+
+}
+
+// end effector callback function
+void Pepper_MoveToFruitState::ProcessEndEffectorStatus(const crops_msgs::EndEffectorStatus::ConstPtr& msg)
+{
+  end_effector_status.fruit_not_removed 	=  msg->fruit_not_removed ;
+  end_effector_status.gripping_failed	=  msg->gripping_failed ;
+  end_effector_status.fruit_removed		=  msg->fruit_removed ;
+  end_effector_status.cutter_ready		=  msg->cutter_ready ;
+  end_effector_status.gripping_successful   =  msg->gripping_successful ;
+  end_effector_status.gripper_ready		=  msg->gripper_ready ;
+}
+
+/**
+ * Feedback from the arm
+ */
+void Pepper_MoveToFruitState::feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback)
+{
+  //ROS_INFO("#GUI Progress: %.0f %%", feedback->progress * 100);
+}
+
+/**
+ * Load fruit coordinates from the state machine and move the arm towards it
+ */
+string Pepper_MoveToFruitState::execute(map<string, boost::any> * data)
+{
+  // Let next state know who precedes it
+  std::string state_name   = "PepperMoveToFruit";
+  (*data)["parent_state"]  = state_name;
+
+  string outcome;
+  if (first_)
+  {
+    
+	//SetGripper("open_gripper");
+	end_effector_command.gripper_status  = false;		// open gripper
+	end_effector_command.cutter_status   = false;		// open cutter
+	end_effector_control.publish(end_effector_command);
+
+
+    crops_msgs::p2pGoal selected_goal = boost::any_cast<crops_msgs::p2pGoal>((*data)["arm_goal"]);
+
+    //Set new arm goal set by fruit selection state 
+    crops_msgs::p2pGoal final_goal;
+    
+    final_goal.desired_time = 2;
+    final_goal.use_hardware = xpc_target_;
+    final_goal.pathMode = 0;
+
+    final_goal.goal_pose.position.x = selected_goal.goal_pose.position.x;
+    final_goal.goal_pose.position.y = selected_goal.goal_pose.position.y;
+    final_goal.goal_pose.position.z = selected_goal.goal_pose.position.z;
+
+    final_goal.goal_pose.orientation.x = selected_goal.goal_pose.orientation.x;
+    final_goal.goal_pose.orientation.y = selected_goal.goal_pose.orientation.y;
+    final_goal.goal_pose.orientation.z = selected_goal.goal_pose.orientation.z;
+    final_goal.goal_pose.orientation.w = selected_goal.goal_pose.orientation.w;
+
+    //goal_.move2goal.use_hardware = xpc_target_;
+    //goal_.move2goal.desired_time = 5;
+    //goal_.pathMode = 0;
+    //ROS_INFO(
+    //    "#GUI moveToFruitState moves to position (%.2f %.2f %.2f) ", goal_.move2goal.pose.position.x, goal_.move2goal.pose.position.y, goal_.move2goal.pose.position.z);
+    //ROS_INFO(
+    //    "#GUI moveToFruitState moves to orientation (%.2f %.2f %.2f %2f) ", goal_.move2goal.pose.orientation.x, goal_.move2goal.pose.orientation.y, goal_.move2goal.pose.orientation.z, goal_.move2goal.pose.orientation.w);
+    //setFeedbackCallback(boost::bind(&Pepper_MoveToFruitState::feedbackCb, this, _1));
+    //sendGoal();
+
+    //crops_msgs::p2pGoal goal;
+    //goal.desired_time = 5;
+    //oal.use_hardware = xpc_target_;
+
+    //goal.move2goal.pose.position.x = goal_.move2goal.pose.position.x;
+    //goal.move2goal.pose.position.y = goal_.move2goal.pose.position.y;
+    //goal.move2goal.pose.position.z = goal_.move2goal.pose.position.z;
+
+    //goal.goal_pose.position.x = p2pGoal.goal_pose.position.x;
+    //goal.goal_pose.position.y = p2pGoal.goal_pose.position.y;
+    //goal.goal_pose.position.z = p2pGoal.goal_pose.position.z;
+
+    //goal.goal_pose.pose.position.x = 0.41;
+    //goal.goal_pose.pose.position.y = 0.61;
+    //goal.goal_pose.pose.position.z = 0.97;
+
+    //double ang[3];
+    //double quat[4];
+    //double dcm[9];
+
+    //ang[0] = 0;
+    //ang[1] = 0;
+    //ang[2] = 0;
+
+    //kardan2quat(ang,quat,dcm);
+
+    //goal.goal_pose.pose.orientation.w = quat[0];
+    //goal.goal_pose.pose.orientation.x = quat[1];
+    //goal.goal_pose.pose.orientation.y = quat[2];
+    //goal.goal_pose.pose.orientation.z = quat[3];
+
+    //goal.goal_pose.stem_pos.x = 0.5	;
+    //goal.goal_pose.stem_pos.y = 0.7;
+
+    //goal.main_stem.stem_pos.x = 0.5;
+    //goal.main_stem.stem_pos.y = 0.880;
+
+    //goal.pathMode = 0;
+    //goal_ = goal;
+
+
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "Elem_0";
+    marker.header.stamp = ros::Time();
+    marker.ns = "my_namespace";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = selected_goal.goal_pose.position.x;
+    marker.pose.position.y = selected_goal.goal_pose.position.y;
+    marker.pose.position.z = selected_goal.goal_pose.position.z;
+    marker.pose.orientation.x = selected_goal.goal_pose.orientation.x;
+    marker.pose.orientation.y = selected_goal.goal_pose.orientation.y;
+    marker.pose.orientation.z = selected_goal.goal_pose.orientation.z;
+    marker.pose.orientation.w = selected_goal.goal_pose.orientation.w;
+    marker.scale.x = 0.11;
+    marker.scale.y = 0.11;
+    marker.scale.z = 0.11;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+    marker_pub.publish( marker );
+ 
+
+    goal_ = final_goal;
+    setFeedbackCallback(boost::bind(&Pepper_MoveToFruitState::feedbackCb, this, _1));
+    sendGoal();
+
+    stat_msg_.start_fruit_clock = "start";
+    stat_pub_.publish(stat_msg_);
+    first_ = false;
+    ROS_INFO("Goal for arm set.");
+  }
+
+  actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+  ROS_INFO("MOVE ARM  State %s ", current_state_.toString().c_str());
+  switch (current_state_.state_)
+  {
+
+    /*
+     * The action client (the arm) can be in different states. It's possible to define
+     * what the action server (movetoFruitState) should do in each of these situations:
+     case actionlib::SimpleClientGoalState::PREEMPTED:
+     case actionlib::SimpleClientGoalState::RECALLED:
+     case actionlib::SimpleClientGoalState::REJECTED:
+     case actionlib::SimpleClientGoalState::PENDING:
+     case actionlib::SimpleClientGoalState::ACTIVE:
+     case actionlib::SimpleClientGoalState::LOST:
+     next_state = "move to fruit";
+     break;
+     */
+    ROS_INFO("Moving State %s ", current_state_.toString().c_str());
+    case actionlib::SimpleClientGoalState::SUCCEEDED:
+      first_ = true;
+      if (ac_.getResult()->reached_goal)
+      {
+			ROS_INFO("#GUI Arm has reached the fruit.");
+			(*data)["found_fruit"] = true;
+
+			// TODO grip&cut sequence should not take place inside the actionlib!?
+			end_effector_command.gripper_status  = true;		// close gripper
+			end_effector_control.publish(end_effector_command);
+			sleep(1); // wait to close gripper
+			// TODO check succesfull grip
+
+			end_effector_command.cutter_status   = true;		// close cutter
+			end_effector_control.publish(end_effector_command);
+			sleep(1); // wait to close cutter
+			// TODO check succesfull cut
+
+			end_effector_command.cutter_status   = false;		// open cutter
+			end_effector_control.publish(end_effector_command);
+
+			outcome = "Goal";
+      }
+      else
+      {
+        ROS_WARN("#GUI ClientState not succeeded!!");
+        (*data)["found_fruit"] = false;
+        first_ = true;
+        outcome = "Out of reach";
+      }
+      break;
+
+    case actionlib::SimpleClientGoalState::PREEMPTED:
+      ROS_INFO("#GUI Arm could not reach the fruit");
+      (*data)["found_fruit"] = false;
+      first_ = true;
+      outcome = "Out of reach";
+      break;
+
+    default:
+      outcome = "Move to fruit";
+      break;
+  }
+  // TODO testing only: set to false always to prevent collision check
+  collisionChecked = true;
+  return outcome;
+
+}
+
+

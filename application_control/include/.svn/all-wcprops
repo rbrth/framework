@@ -1,0 +1,179 @@
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/crops/!svn/ver/1756/trunk/catkin/src/crops_general/crops_main/include
+END
+Pepper_MoveToVisualServoStartState.h
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svn/crops/!svn/ver/1691/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToVisualServoStartState.h
+END
+ColdBootState.h
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/ColdBootState.h
+END
+transportFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/transportFruitState.h
+END
+Pepper_MoveSensorsIntoWorkspaceState.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveSensorsIntoWorkspaceState.h
+END
+Pepper_MoveToFruitStartState.h
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svn/crops/!svn/ver/1724/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToFruitStartState.h
+END
+Pepper_MoveArmOutOfWorkspaceState.h
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveArmOutOfWorkspaceState.h
+END
+Pepper_MoveToBasketState.h
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/crops/!svn/ver/1680/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToBasketState.h
+END
+Pepper_ReadyState.h
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_ReadyState.h
+END
+Pepper_ColdBootState.h
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/crops/!svn/ver/1644/trunk/catkin/src/crops_general/crops_main/include/Pepper_ColdBootState.h
+END
+moveToHomeState.h
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/moveToHomeState.h
+END
+moveToFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/moveToFruitState.h
+END
+fruitLocState.h
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/fruitLocState.h
+END
+selectFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/selectFruitState.h
+END
+Pepper_MoveArmIntoWorkspaceState.h
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveArmIntoWorkspaceState.h
+END
+Pepper_MoveSensorsOutOfWorkspaceState.h
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveSensorsOutOfWorkspaceState.h
+END
+moveToHomeStateSim.h
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/moveToHomeStateSim.h
+END
+moveToFruitStateSim.h
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/moveToFruitStateSim.h
+END
+motionPlanningState.h
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/motionPlanningState.h
+END
+Pepper_DetectFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1644/trunk/catkin/src/crops_general/crops_main/include/Pepper_DetectFruitState.h
+END
+Pepper_MoveToHomeState.h
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/svn/crops/!svn/ver/1680/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToHomeState.h
+END
+Pepper_MoveToFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1680/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToFruitState.h
+END
+Pepper_MoveToWaypoint_1.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1683/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToWaypoint_1.h
+END
+Pepper_MoveToWaypoint_2.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1683/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToWaypoint_2.h
+END
+Pepper_HomeSensorRigState.h
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_HomeSensorRigState.h
+END
+Pepper_MoveToWaypoint_3.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1756/trunk/catkin/src/crops_general/crops_main/include/Pepper_MoveToWaypoint_3.h
+END
+Pepper_SelectFruitState.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/crops/!svn/ver/1592/trunk/catkin/src/crops_general/crops_main/include/Pepper_SelectFruitState.h
+END
+Pepper_CollisionCheckState.h
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svn/crops/!svn/ver/1644/trunk/catkin/src/crops_general/crops_main/include/Pepper_CollisionCheckState.h
+END
+Pepper_ErrorState.h
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/Pepper_ErrorState.h
+END
+ReadyState.h
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/crops/!svn/ver/1327/trunk/catkin/src/crops_general/crops_main/include/ReadyState.h
+END

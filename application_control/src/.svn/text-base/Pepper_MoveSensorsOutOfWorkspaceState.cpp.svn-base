@@ -1,0 +1,130 @@
+/*
+* Software License Agreement (BSD License)
+*
+* (C) 2014 Wageningen University & Research Centre, Wageningen UR Greenhouse Horticulture http://www.wageningenur.nl/greenhousehorticulture 
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
+ * State for moving the arm out of workspace
+ *
+ * Author Ruud Barth, ruud.barth@wur.nl
+ */
+
+#include "Pepper_MoveSensorsOutOfWorkspaceState.h"
+#include <ros/ros.h>
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/terminal_state.h>
+#include <crops_msgs/pepperSensorySystemMotorAction.h>
+
+
+using std::string;
+using std::map;
+
+Pepper_MoveSensorsOutOfWorkspaceState::Pepper_MoveSensorsOutOfWorkspaceState() : SimpleActionState("/pepper_sensory_system_motor") //TODO: dependency on the name of the node is potential source of error
+{
+	PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+}
+
+Pepper_MoveSensorsOutOfWorkspaceState::~Pepper_MoveSensorsOutOfWorkspaceState()
+{
+}
+
+/**
+ * Feedback from the arm
+ */
+void Pepper_MoveSensorsOutOfWorkspaceState::homeFeedbackCb(const crops_msgs::pepperSensorySystemMotorFeedbackConstPtr feedback)
+{
+	ROS_INFO("#GUI distance sensor rig until out of workspace: %.2f m", feedback->distance_to_goal);
+}
+
+
+string Pepper_MoveSensorsOutOfWorkspaceState::execute(map<string, boost::any> * data)
+{
+
+	// deal with sensor rig not in use and return directly
+	bool use_pepper_sensor_rig_;
+	n.getParam("crops_main/use_pepper_sensor_rig", use_pepper_sensor_rig_);
+    if (!use_pepper_sensor_rig_){
+    	ROS_INFO("Sensor rig is NOT used");
+    	return "SensorsOutOfWorkspace";
+
+    }
+
+
+    string state_transition;
+
+
+
+		if(first_)
+		{
+			first_ = false;
+			crops_msgs::pepperSensorySystemMotorAction goal;
+			goal.action_goal.goal.pepper_sensorrig_motor_control_message = "move_out_workspace";
+			ac_.sendGoal(goal.action_goal.goal);
+		}
+
+		actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+		switch (current_state_.state_)
+		{
+
+		case actionlib::SimpleClientGoalState::SUCCEEDED:
+
+			// Movement has finished.
+			// Reset control parameters to initial value.
+			first_ = true;
+
+			// Double check is goal is actually reached
+			if (ac_.getResult()->reached_goal)
+			{
+				ROS_INFO("#GUI Sensor Platform is out of Workspace");
+				state_transition = "SensorsOutOfWorkspace";
+			}
+			else
+			{
+				ROS_WARN("#GUI Sensor Platform has not reached goal");
+				state_transition = "Error";
+			}
+			break;
+
+		case actionlib::SimpleClientGoalState::PREEMPTED:
+			ROS_WARN("#GUI Sensor Platform has not reached goal");
+			state_transition = "Error";
+			break;
+
+		default:
+			state_transition = "Moving";
+			break;
+		}
+
+
+	return state_transition;
+}

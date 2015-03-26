@@ -1,0 +1,96 @@
+<launch>
+
+    <!--node pkg="rviz" name="rviz"  type="rviz" output="screen"/-->
+
+
+    <node pkg="application_control" name="application_control_node" type="application_control_node" args="$(find application_control)/transitions/transitions.yaml" output="screen" />
+
+
+    <node pkg="image_acquisition" name="image_acquisition_node" type="image_acquisition_node" output="screen">
+
+        <!-- General paths for halcon  -->      
+        <param name="image_acquisition_halcon_external_procedures_path"   type="str"  value="$(find image_acquisition)/halcon_external_procedures" />   
+        <param name="camera_parameters_path"            type="str"  value="$(find image_acquisition)/camera_parameters/tis_camera_parameters.dat" />  
+    
+        <!-- Specific names of defined functions -->
+        <param name="initialize_camera_function"                type="str"      value="initialize_camera_tis_640_480" />
+        <param name="grab_rectified_rgb_image_function"         type="str"      value="grab_rectified_image_640_480" />
+        <param name="grab_rectified_gray_image_function"        type="str"      value="grab_rectified_image_640_480_GRAY" />
+        <param name="grab_rectified_colorspace_image_function"  type="str"      value="grab_rectified_image_640_480_COLORSPACE" />
+        <param name="grab_raw_image_function"                   type="str"      value="grab_raw_image_640_480" />
+        <param name="display_grabbed_image"                     type="str"      value="display_grabbed_image" />
+        <param name="close_frame_grabber_function"              type="str"      value="close_frame_grabber" /> 
+   
+        <!-- Camera initialization parameters -->
+        <param name="exposure"                          type="int"      value="50"/>
+        <param name="gain"                              type="int"      value="40"/>
+        <param name="gainR"                             type="int"      value="1" />
+        <param name="gainG"                             type="int"      value="1" />
+        <param name="gainB"                             type="int"      value="5" />
+
+    </node>
+
+    
+    <node pkg="baxter_interface" name="action_server" type="joint_trajectory_action_server.py" output="screen" />
+
+
+    <node pkg="tf" name="base_broadcaster" type="static_transform_publisher" args="0 0 0 -1.57 0 0 right_gripper servo_camera 5" />
+
+
+    <node pkg="tf" name="pointcloud_rotation_broadcaster" type="static_transform_publisher" args="0 0 0 -1.57 0 0 slam_pointcloud slam_pointcloud_rotated 5" />
+
+
+	<node pkg="visual_servo_control" name="visual_servo_control_node"  type="visual_servo_control_node" output="screen" respawn="false" >
+		
+        <param name="camera_parameters_path"    type="str"  value="$(find visual_servo_control)/camera_parameters/tis_camera_parameters.dat" />	
+	
+    </node>
+	
+
+	<node pkg="robot_control" type="robot_control_action_server" name="robot_control_right_arm" output="screen" args="right"/> 
+    
+
+    <rosparam param="home_position">           [   0.70, -0.90, 0.45,    0.0 , 0.71 ,  -0.0 , 0.71   ]</rosparam>
+    <rosparam param="scan_waypoint_1">         [   0.86, -0.50, 0.45,    0.30 , 0.71 , -0.30 , 0.71  ]</rosparam>
+    <rosparam param="scan_waypoint_2">         [   0.70, -0.90, 0.45,    0.0 , 0.71 ,  -0.0 , 0.71   ]</rosparam>
+    <rosparam param="visual_servo_start_pose"> [   0.70, -0.90, 0.45,    0.0 , 0.71 ,  -0.0 , 0.71   ]</rosparam>
+    
+
+    <!--node pkg="slam_bridge" type="lsd_slam_pointcloud_publisher" name="lsd_slam_pointcloud_publisher" output="screen"--> 
+
+        <!--                    slam bridge parameters                  -->
+        <param name="frame"             type="str"          value="/base"/>
+        <param name="sparsity_factor"   type="int"          value="1"    />
+        
+
+        <!--            lsd slam dynamic reconfigure paramters          -->
+        <param name="minUseGrad"        type="double"      value="9.0"  />
+        <param name="cameraPixelNoise"  type="double"      value="5.0"  />
+        <param name="KFUsageWeight"     type="double"      value="19.0" />
+        <param name="KFDistWeight"      type="double"      value="19.0" />
+
+    <!--/node-->
+
+
+    <!-- LSD slam node. Uses script to launch for setting parameters from launchfile correctly -->
+    <!-- node name="lsd_slam_core" pkg="lsd_slam_core" type="launch_lsd_slam_core.sh" /-->
+
+
+    <node pkg="fruit_detection" name="fruit_detection_node" type="fruit_detection_node" output="screen" respawn="true" >
+    
+        <!-- General paths for halcon -->
+        <param name="fruit_detection_halcon_script_path"                type="str"  value="$(find fruit_detection)/halcon_scripts/cake_test.hdev" />       
+        <param name="fruit_detection_halcon_external_procedures_path"   type="str"  value="$(find fruit_detection)/halcon_external_procedures" />  
+
+        <!-- Specific names of defined functions -->
+        <param name="find_pepper_features_function"     type="str"      value="find_pepper_features" />
+
+        <!-- Pepper detection parameters -->
+        <param name="hue_lower_threshold"               type="int"      value="102" />
+        <param name="hue_upper_threshold"               type="int"      value="124" />
+
+    </node>
+
+
+</launch>
+

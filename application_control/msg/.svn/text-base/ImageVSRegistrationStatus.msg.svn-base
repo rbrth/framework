@@ -1,0 +1,5 @@
+# Message to be send for the image vs registration virtual sensor about image vs registration procedure {done, missing, failed}.
+# header contains the ros::time related to images request trigger
+
+Header header
+string status

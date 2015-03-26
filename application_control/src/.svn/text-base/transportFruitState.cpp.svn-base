@@ -1,0 +1,125 @@
+/*
+* Software License Agreement (BSD License)
+*
+* Copyright (c) 2014,Umeå University
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/**
+ * State for transporting fruit to a basket (after harvest)
+ * Basket position is defined in the h-file
+ *
+ * Author Ola Ringdahl, ringdahl@cs.umu.se
+ */
+
+#include "transportFruitState.h"
+
+using std::string;
+using std::map;
+
+TransportFruitState::TransportFruitState() :
+    SimpleActionState("/p2pAction")
+{
+  PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+  //check if xpc_simulator or xpcTarget Hardware should be used
+  ros::param::get("/crops_manipulator_udp/xpc_target", xpc_target_);
+  nh_.getParam("fruit_bin_position", bin_location_); //get the pose of the fruit bin
+}
+
+TransportFruitState::~TransportFruitState()
+{
+}
+
+/**
+ * Feedback from the arm
+ */
+void TransportFruitState::feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback)
+{
+  ROS_INFO("#GUI Progress: %.0f %%", feedback->progress * 100);
+}
+
+/*
+ * Execute the action (move to bin)
+ */
+string TransportFruitState::execute(map<string, boost::any> * data)
+{
+  string outcome;
+  // check that all values are doubles:
+  if (first_)
+  {
+    goal_.goal_pose.position.x = bin_location_[0];
+    goal_.goal_pose.position.y = bin_location_[1];
+    goal_.goal_pose.position.z = bin_location_[2];
+    goal_.goal_pose.orientation.x = bin_location_[3];
+    goal_.goal_pose.orientation.y = bin_location_[4];
+    goal_.goal_pose.orientation.z = bin_location_[5];
+    goal_.goal_pose.orientation.w = bin_location_[6];
+    goal_.desired_time = 5;
+    goal_.use_hardware = xpc_target_;
+    goal_.pathMode = 0;
+
+    ROS_INFO(
+        "#GUI TransportFruitState moves to position (%.2f %.2f %.2f) ", goal_.goal_pose.position.x, goal_.goal_pose.position.y, goal_.goal_pose.position.z);
+    setFeedbackCallback(boost::bind(&TransportFruitState::feedbackCb, this, _1));
+    sendGoal();
+    first_ = false;
+  }
+
+  actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+
+  switch (current_state_.state_)
+  {
+    case actionlib::SimpleClientGoalState::SUCCEEDED:
+      first_ = true;
+      if (ac_.getResult()->reached_goal)
+      {
+        stat_msg_.fruit_harvested = true;
+        ROS_INFO("#GUI Arm has reached fruit bin");
+      }
+      stat_msg_.start_fruit_clock = "stop";
+      stat_pub_.publish(stat_msg_);
+      outcome = "Basket";
+      break;
+
+    case actionlib::SimpleClientGoalState::PREEMPTED:
+      stat_msg_.fruit_missed = true;
+      ROS_WARN("#GUI Arm could not reach fruit bin");
+      stat_msg_.start_fruit_clock = "stop";
+      stat_pub_.publish(stat_msg_);
+      outcome = "Out of reach";
+      break;
+
+    default:
+      outcome = "Transport fruit";
+      break;
+  }
+  return outcome;
+}

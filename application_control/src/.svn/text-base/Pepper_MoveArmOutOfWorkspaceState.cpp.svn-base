@@ -1,0 +1,218 @@
+/*
+* Software License Agreement (BSD License)
+*
+* (C) 2014 Wageningen University & Research Centre, Wageningen UR Greenhouse Horticulture http://www.wageningenur.nl/greenhousehorticulture
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "Pepper_MoveArmOutOfWorkspaceState.h"
+
+using std::string;
+using std::map;
+
+Pepper_MoveArmOutOfWorkspaceState::Pepper_MoveArmOutOfWorkspaceState() :
+						  SimpleActionState("/p2pAction") //TODO: dependency on the name of the node is potential source of error
+{
+	PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+	collisionChecked = true;
+	//collisionChecked = false;
+    nh_.getParam("arm_out_of_workspace_position", arm_out_of_workspace_position);
+	ros::param::get("/crops_manipulator_udp/xpc_target", xpc_target_);
+}
+
+Pepper_MoveArmOutOfWorkspaceState::~Pepper_MoveArmOutOfWorkspaceState()
+{
+
+}
+
+/**
+ * Feedback from the arm.
+ */
+void Pepper_MoveArmOutOfWorkspaceState::feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback)
+{
+	ROS_INFO("#GUI Progress: %.0f %%", feedback->progress * 100);	
+}
+
+
+/*
+ * Main executing function:
+ * - Sets goal.
+ * - Checks on collision.
+ * - Moves the arm if safe.
+ */
+string Pepper_MoveArmOutOfWorkspaceState::execute(map<string, boost::any> * data)
+{
+	string state_transition;
+
+	// When not yet checked on a collision, determine goal and perform collision detection.
+	if(!collisionChecked)
+	{
+		// Determine the goal.
+     		goal_ = determineGoal();
+		(*data)["arm_goal"] = goal_;
+
+		// Let collision state know which state calls him.
+		std::string state_name 	 		= "PepperMoveArmOutOfWorkspace";
+		(*data)["collision_parent_state"]   	= state_name;
+
+		collisionChecked	= true;
+		state_transition 	= "CheckCollision";
+		return state_transition;
+	}
+	// When checked on a collision, move the arm.
+	else
+	{
+		return moveArm();
+	}
+}
+
+
+/**
+ * Moves arm to goal and checks on feedback.
+ */
+std::string Pepper_MoveArmOutOfWorkspaceState::moveArm()
+{
+	string state_transition;
+
+	// When collision is checked (and there was no collision, otherwise the state machine does not return to this state),
+	// then check if the movement is started.
+	if (first_)
+	{
+		// Movement will be started so we set this variable to false.
+		first_ = false;
+
+		// Movement can either be simulated or real.
+		if (n.getParam("/crops_manipulator_udp/xpc_target", xpc_target_))
+		{
+			ROS_INFO("crops_manipulator_udp/xpc_target parameter is existing");
+			
+			if(xpc_target_==false)
+			{
+				ROS_INFO("  xpc_target=false (simulator)");
+			}
+			else
+			{
+				ROS_INFO("  xpc_target=true (real arm)");
+			}
+		}
+		else
+		{
+			ROS_WARN("crops_manipulator_udp/xpc_target parameter is not set!");
+		}
+
+                
+		goal_ = determineGoal();
+		
+    		goal_.desired_time = 5;
+    		goal_.use_hardware = xpc_target_;
+    		goal_.pathMode = 0;
+
+		ROS_INFO("MoveArmOutOfWorkspaceState moves to position (%.2f %.2f %.2f) ", goal_.goal_pose.position.x, goal_.goal_pose.position.y, goal_.goal_pose.position.z);
+
+		// Bind feedback callback and send the goal that was previously determined globally.
+		setFeedbackCallback(boost::bind(&Pepper_MoveArmOutOfWorkspaceState::feedbackCb, this, _1));
+
+		sendGoal();
+		//sleep(1);
+
+	}
+
+
+	// Movement has started so we request the current state of the movement.
+	// Depending on what is returned, action is undertaken.
+	actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+	switch (current_state_.state_)
+	{
+
+	case actionlib::SimpleClientGoalState::SUCCEEDED:
+
+		// Movement has finished.
+		// Reset control parameters to initial value.
+		first_ 			= true;
+		collisionChecked 	= true;
+
+		// Double check is goal is actually reached
+		if (ac_.getResult()->reached_goal)
+		{
+
+			ROS_INFO("#GUI Arm moved out of workspace");
+			state_transition = "ArmOutOfWorkspace";
+		}
+		else
+		{
+			ROS_WARN("#GUI Arm could not move out of workspace");
+			state_transition = "Error";
+		}
+		break;
+
+	case actionlib::SimpleClientGoalState::PREEMPTED:
+
+		ROS_WARN("#GUI Arm could not move out of workspace");
+		// Movement has finished.
+		// Reset control parameters to initial value.
+		first_ 			= true;
+		collisionChecked 	= true;
+		state_transition = "Error";
+		break;
+
+	default:
+		state_transition = "Moving";
+		break;
+	}
+	return state_transition;
+}
+
+
+
+
+/**
+ * Determines what the next goal is. In this state it is a hardcoded position.
+ */
+crops_msgs::p2pGoal Pepper_MoveArmOutOfWorkspaceState::determineGoal()
+{
+	// Determine next goal
+	crops_msgs::p2pGoal goal;
+
+	// check that all values are doubles:
+    	for (int32_t i = 0; i < arm_out_of_workspace_position.size(); ++i)
+    	{
+     		ROS_ASSERT(arm_out_of_workspace_position[i].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+    	}
+    	goal.goal_pose.position.x = arm_out_of_workspace_position[0];
+    	goal.goal_pose.position.y = arm_out_of_workspace_position[1];
+    	goal.goal_pose.position.z = arm_out_of_workspace_position[2];
+    	goal.goal_pose.orientation.x = arm_out_of_workspace_position[3];
+    	goal.goal_pose.orientation.y = arm_out_of_workspace_position[4];
+    	goal.goal_pose.orientation.z = arm_out_of_workspace_position[5];
+    	goal.goal_pose.orientation.w = arm_out_of_workspace_position[6];
+
+	return goal;
+}

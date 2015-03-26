@@ -1,0 +1,7 @@
+Header header
+# Obstacle Data
+# Main stems (i.e. stem connected to fruit)
+crops_msgs/cylinder[] main_stem
+#  Other stems
+crops_msgs/cylinder[] neighbor_stem
+

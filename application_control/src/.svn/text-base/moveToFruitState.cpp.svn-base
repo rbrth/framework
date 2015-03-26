@@ -1,0 +1,141 @@
+/*
+* Software License Agreement (BSD License)
+*
+* Copyright (c) 2014,Umeå University
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/**
+ * State for moving the arm to a fruit coordinate using actionlib interface
+ *
+ * Author Ola Ringdahl, ringdahl@cs.umu.se
+ */
+
+#include "moveToFruitState.h"
+
+using std::string;
+using std::map;
+
+MoveToFruitState::MoveToFruitState() :
+    SimpleActionState("/p2pAction") // name of the actionlib server node
+{
+  PubManipulatorState = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1000);
+  //check if xpc_simulator or xpcTarget Hardware should be used
+  ros::param::get("/crops_manipulator_udp/xpc_target", xpc_target_);
+  manipulator_state_pub_ = n.advertise<crops_msgs::manipulatorState>("setManipulatorMode", 1);
+}
+
+MoveToFruitState::~MoveToFruitState()
+{
+
+}
+
+/**
+ * Feedback from the arm
+ */
+void MoveToFruitState::feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback)
+{
+  ROS_INFO("#GUI Progress: %.0f %%", feedback->progress * 100);
+}
+
+/**
+ * Load fruit coordinates from the state machine and move the arm towards it
+ */
+string MoveToFruitState::execute(map<string, boost::any> * data)
+{
+  string outcome;
+  if (first_)
+  {
+    goal_ = boost::any_cast<crops_msgs::p2pGoal>((*data)["arm_goal"]);
+    goal_.use_hardware = xpc_target_;
+    goal_.desired_time = 5;
+    goal_.pathMode = 0;
+
+    ROS_INFO(
+        "#GUI moveToFruitState moves to position (%.2f %.2f %.2f) ", goal_.goal_pose.position.x, goal_.goal_pose.position.y, goal_.goal_pose.position.z);
+    ROS_INFO(
+        "#GUI moveToFruitState moves to orientation (%.2f %.2f %.2f %2f) ", goal_.goal_pose.orientation.x, goal_.goal_pose.orientation.y, goal_.goal_pose.orientation.z, goal_.goal_pose.orientation.w);
+    setFeedbackCallback(boost::bind(&MoveToFruitState::feedbackCb, this, _1));
+    sendGoal();
+    first_ = false;
+    stat_msg_.start_fruit_clock = "start";
+    stat_pub_.publish(stat_msg_);
+  }
+
+  actionlib::SimpleClientGoalState current_state_ = ac_.getState();
+
+  ROS_DEBUG("MOVE ARM  State %s ", current_state_.toString().c_str());
+  switch (current_state_.state_)
+  {
+
+    /*
+     * The action client (the arm) can be in different states. It's possible to define
+     * what the action server (movetoFruitState) should do in each of these situations:
+     case actionlib::SimpleClientGoalState::PREEMPTED:
+     case actionlib::SimpleClientGoalState::RECALLED:
+     case actionlib::SimpleClientGoalState::REJECTED:
+     case actionlib::SimpleClientGoalState::PENDING:
+     case actionlib::SimpleClientGoalState::ACTIVE:
+     case actionlib::SimpleClientGoalState::LOST:
+     next_state = "move to fruit";
+     break;
+     */
+    case actionlib::SimpleClientGoalState::SUCCEEDED:
+      first_ = true;
+      if (ac_.getResult()->reached_goal)
+      {
+        ROS_INFO("#GUI Arm has reached the fruit");
+        (*data)["found_fruit"] = true;
+        outcome = "Goal";
+      }
+      else
+      {
+        ROS_WARN("#GUI ClientState not succeeded!!");
+        (*data)["found_fruit"] = false;
+        first_ = true;
+        //outcome = "Out of reach";
+      }
+      break;
+
+    case actionlib::SimpleClientGoalState::PREEMPTED:
+      ROS_INFO("#GUI Arm could not reach the fruit");
+      (*data)["found_fruit"] = false;
+      first_ = true;
+      outcome = "Out of reach";
+      break;
+
+    default:
+      outcome = "Move to fruit";
+      break;
+  }
+  return outcome;
+
+}

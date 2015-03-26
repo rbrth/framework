@@ -1,0 +1,5 @@
+# Message to be send for the Force-A sensor node after measurig the ripeness of crop. The resulting message displays 
+# whether the crop is {ready, not_ready} to harvest.
+
+Header header
+string harvest_status 

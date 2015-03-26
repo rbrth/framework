@@ -1,0 +1,24 @@
+/*
+ *  Created on: Mar 20, 2012
+ *      Author: ringdahl
+ */
+#include <ros/ros.h>
+#include <crops_msgs/Fruits.h>
+#include <crops_msgs/moveArmAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+
+
+#ifndef MOVETOFRUITSTATESIM_H_
+#define MOVETOFRUITSTATESIM_H_
+
+class MoveToFruitStateSim : public SimpleActionState<crops_msgs::moveArmAction, crops_msgs::moveArmGoal >
+{
+public:
+  MoveToFruitStateSim();
+  virtual ~MoveToFruitStateSim();
+  void feedbackCb(const crops_msgs::moveArmFeedbackConstPtr feedback);
+  std::string execute(std::map<std::string, boost::any> * data);
+  crops_msgs::Statistics stat_msg_;
+};
+
+#endif /* MOVETOFRUITSTATESIM_H_ */

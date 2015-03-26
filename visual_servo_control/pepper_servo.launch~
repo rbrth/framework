@@ -1,0 +1,10 @@
+<launch>
+
+     <node pkg="tf" type="static_transform_publisher" name="base_broadcaster" args="0 0 0 0 0 0 base_link world_frame 50" />
+
+	<node name="pepper_servo" pkg="pepper_servo_package" type="pepper_servo" output="screen" respawn="true" >
+		<param name="halcon_program_path" 	type="str"	value="$(find pepper_servo_package)/hdev_scripts/image_analysis.hdev" />
+		<param name="halcon_ext_proc_path" 	type="str"	value="$(find pepper_servo_package)/external_procedures" />	
+	</node>
+
+</launch>

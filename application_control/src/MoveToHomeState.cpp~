@@ -1,0 +1,118 @@
+/*
+* Software License Agreement (BSD License)
+*
+* Copyright (c) 2014,Umeå University
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
+ * Ready state. Should wait in this state until the user starts the system
+ * (i.e. do not begin to move the arm before the user says OK)
+ */
+
+#include "MoveToHomeState.h"
+
+
+
+MoveToHomeState::MoveToHomeState() 
+{     
+     // Initially the goal is not reached.
+     transition = "not reached";
+     
+     // Get home position from launch file.
+     node_handle.getParam("home_position", home_position);
+     
+     first = true;
+}
+
+
+
+
+std::string MoveToHomeState::execute(std::map<std::string, boost::any> * data)
+{
+           
+     // Create the action client for arm movement. True causes the client to spin its own thread.
+     actionlib::SimpleActionClient<baxter::MoveArmAction> action_client_right("robot_control_right_arm", true); 
+          
+
+     if(first)
+     {
+          first = false;       
+
+          ROS_INFO("Waiting for action server for moving rigth Baxter arm to start.");
+          action_client_right.waitForServer(); //will wait for infinite time
+          ROS_INFO("Action server for moving rigth Baxter arm is started.");
+         
+
+          ROS_INFO("Sending goal.");
+          baxter::MoveArmGoal goal_message;
+          node_handle.getParam("home_position", home_position);
+          goal_message.goal_pose.position.x = home_position[0];
+          goal_message.goal_pose.position.y = home_position[1];
+          goal_message.goal_pose.position.z = home_position[2];
+          goal_message.goal_pose.orientation.x = home_position[3];
+          goal_message.goal_pose.orientation.y = home_position[4];
+          goal_message.goal_pose.orientation.z = home_position[5];
+          goal_message.goal_pose.orientation.w = home_position[6];                  
+          action_client_right.sendGoal(goal_message);
+     }
+     
+     actionlib::SimpleClientGoalState current_state = action_client_right.getState();
+
+     switch (current_state.state_)
+     {
+          case actionlib::SimpleClientGoalState::SUCCEEDED:
+               first = true;
+               if (action_client_right.getResult()->goal_reached)
+                {
+                  ROS_INFO("Arm has reached home position");
+                  transition = "goal reached";
+                }
+                else
+                {
+                  ROS_WARN("Arm has not reached home position");
+                  transition = "goal not reached";
+                }
+                break;
+
+         case actionlib::SimpleClientGoalState::PREEMPTED:
+                ROS_WARN("#GUI Arm could not reach home position");
+                first = true;
+                transition = "error";
+                break;
+
+         default:
+                transition = "moving";
+                break;
+  }
+       
+     return transition;
+}

@@ -1,0 +1,9 @@
+string  request_message
+float64 pepper_blob_center_of_gravity_x
+float64 pepper_blob_center_of_gravity_y
+---
+bool initialized
+bool found_vector
+float64[] servo_velocity_vector
+float64 error_x
+float64 error_y

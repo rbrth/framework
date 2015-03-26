@@ -1,0 +1,82 @@
+/*
+ * MoveArmState.h
+ *
+ *  Created on: Mar 20, 2012
+ *      Author: ringdahl
+ */
+#include <ros/ros.h>
+#include <crops_msgs/p2pAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+#include <crops_msgs/manipulatorState.h>
+#include <crops_msgs/tcpPositions.h>
+#include <crops_msgs/manipulator_online_control.h>
+#include <crops_msgs/joint_online_control.h>
+#include <crops_msgs/tcpInfo.h>
+#include <crops_msgs/end_effector_command.h>
+#include <crops_msgs/EndEffectorStatus.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Empty.h>
+#include <std_msgs/Int32.h>
+#include <std_msgs/Float64.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
+// #include <crops_msgs/GripperControlGUI.h>
+// #include <crops_msgs/ManipulatorControlGUI.h>
+#include <crops_msgs/JointControlGUI.h>
+#include <crops_msgs/manipulator_move2goal.h>
+// #include <crops_msgs/HomingError.h>
+#include <crops_msgs/jointStatus.h>
+// #include <crops_msgs/manipulatorStatus.h>
+#include <crops_msgs/manipulatorState.h>
+#include <visualization_msgs/Marker.h>
+
+#include <tf_rot.hpp>
+
+
+#ifndef PEPPER_MOVETOFRUITSTATE_H_
+#define PEPPER_MOVETOFRUITSTATE_H_
+
+class Pepper_MoveToFruitState : public SimpleActionState<crops_msgs::p2pAction, crops_msgs::p2pGoal>
+{
+private:
+  ros::Publisher manipulator_state_pub_;
+  ros::NodeHandle n;
+  ros::Publisher PubManipulatorState;
+  ros::Publisher end_effector_control;
+  ros::Subscriber end_effector_feedback;
+  bool xpc_target_;//xpc target flag
+  int robot_speed;
+  float robot_speed_factor;
+  bool no_fruit_cut;
+  std::string gripperType;
+  int gripRetries;
+  //actionlib::SimpleActionClient<crops_msgs::p2pAction> p2p_client;
+  ros::Publisher updateTCPsettings_;
+  ros::Publisher marker_pub;
+
+  //end effector related
+  struct endeffector_st {
+	  bool fruit_not_removed;
+	  bool gripping_failed;
+	  bool fruit_removed;
+	  bool cutter_ready;
+	  bool gripping_successful;
+	  bool gripper_ready;
+  };
+  endeffector_st end_effector_status;
+  crops_msgs::end_effector_command end_effector_command;
+  std::string state_name;
+
+public:
+  Pepper_MoveToFruitState();
+  virtual ~Pepper_MoveToFruitState();
+  void feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback);
+  std::string execute(std::map<std::string, boost::any> * data);
+  crops_msgs::Statistics stat_msg_;
+  void ProcessEndEffectorStatus(const crops_msgs::EndEffectorStatus::ConstPtr& msg);
+  //void SetGripper(std::string action);
+
+};
+
+#endif /* PEPPER_MOVETOFRUITSTATE_H_ */

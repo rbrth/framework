@@ -1,0 +1,621 @@
+/*
+* Software License Agreement (BSD License)
+*
+* (C) 2014 Wageningen University & Research Centre, Wageningen UR Greenhouse Horticulture http://www.wageningenur.nl/greenhousehorticulture 
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions
+* are met:
+*
+* * Redistributions of source code must retain the above copyright
+* notice, this list of conditions and the following disclaimer.
+* * Redistributions in binary form must reproduce the above
+* copyright notice, this list of conditions and the following
+* disclaimer in the documentation and/or other materials provided
+* with the distribution.
+* * Neither the name of Open Source Robotics Foundation nor
+* the names of its contributors may be used to endorse or promote
+* products derived from this software without specific prior
+* written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "Pepper_SelectFruitState.h"
+#include <tf_rot.hpp>
+#include <stdlib.h>
+#include <math.h>
+
+using std::string;
+using std::map;
+using std::vector;
+
+/**
+ * Constructor
+ */
+Pepper_SelectFruitState::Pepper_SelectFruitState()
+{
+  fruit_number_ = 0;
+  pose_number_ = 0;
+  first_ = true;
+  one_pose_ = true;
+  fruit_found_ = false;
+  if (!nh_.getParam("crops_main/frame_id", camera_frame_))
+  {
+    ROS_ERROR("#GUI SelectFruitState could not load the crops_main/frame_id");
+  }
+  if (!nh_.getParam("crops_main/one_pose", one_pose_))
+  {
+    ROS_WARN("#GUI SelectFruitState could not load the crops/one_pose");
+  }
+  if (one_pose_)
+  {
+    ROS_INFO("#GUI SelectFruitState uses one pose");
+  }
+  else
+  {
+    ROS_INFO("#GUI SelectFruitState uses several poses");
+  }
+}
+
+Pepper_SelectFruitState::~Pepper_SelectFruitState()
+{
+}
+
+/**
+ * Make a service request to the fruit localization node to get a list of fruits.
+ */
+string Pepper_SelectFruitState::execute(map<string, boost::any> * data)
+{
+
+  // Let next state know who precedes it
+  std::string state_name   = "PepperSelectFruitState";
+  (*data)["parent_state"]  = state_name;
+
+
+  // Get a list with fruit coordinates from the state machine
+  crops_msgs::Multiple_Affordances fruit_list = boost::any_cast<crops_msgs::Multiple_Affordances>((*data)["fruit"]);
+
+  // uses One or several poses for a fruit
+  ROS_INFO("Execute");
+  if (!first_)
+  {
+    ROS_INFO("Checking if fruit has been reached");
+    fruit_found_ = boost::any_cast<bool>((*data)["found_fruit"]);
+    if (!fruit_found_)
+    {
+      int number_of_poses = fruit_list.Multiple_Fruits[fruit_number_].poses.size();
+      if (pose_number_ < number_of_poses - 1 && !one_pose_)
+      {
+        pose_number_++;
+        ROS_INFO("#GUI Selecting next pose for fruit number %d", fruit_number_ +1);
+      }
+      else
+      {
+        fruit_number_++;
+        pose_number_ = 0;
+        stat_msg_.fruit_missed = true;
+        stat_msg_.start_fruit_clock = "stop";
+        stat_pub_.publish(stat_msg_);
+        ROS_WARN("#GUI Fruit missed");
+      }
+    }
+    else
+    {
+      fruit_number_++;
+      pose_number_ = 0;
+    }
+  }
+  first_ = false;
+  int n_fruits = fruit_list.NumberOfFruits;
+  ROS_INFO("fruit_number: %d, nFruits: %d",fruit_number_,n_fruits);
+  if (fruit_number_ >= n_fruits)
+  {
+    // All fruits in the list has been selected (and hopefully picked) already
+    // For some reason we need two ros_info. Otherwise nothing is printed before return :(
+    ROS_INFO("#GUI All fruits picked");
+    ROS_INFO("Have a nice day! :-)");
+
+    // Reset the counter so we can call the state again with new fruit coordinates
+    fruit_number_ = 0;
+    pose_number_ = 0;
+    stat_msg_.fruit_missed = false;
+    first_ = true;
+
+    // Stop the total clock in the GUI:
+    stat_msg_.start_tot_clock = "stop";
+    stat_pub_.publish(stat_msg_);
+
+    return "All fruits picked";
+  }
+  ROS_INFO("Fruit Number: %d, Nfruits: %d,  PoseNo: %d", fruit_number_+1, n_fruits, pose_number_+1);
+  // transform from camera(TOF) coordinate system to the global
+  geometry_msgs::PoseStamped goal_pose, fruit_pose;
+  fruit_pose.header.frame_id = camera_frame_; // camera to manipulator
+//  fruit_pose.header.frame_id = "Elem_0"; // manipulator to camera
+  fruit_pose.header.stamp = fruit_list.header.stamp;
+  fruit_pose.pose = fruit_list.Multiple_Fruits[fruit_number_].poses[pose_number_];
+
+
+
+  ROS_INFO(
+      "Fruit pose before transformation: ((%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f %2f))",
+      fruit_pose.pose.position.x, fruit_pose.pose.position.y, fruit_pose.pose.position.z,
+      fruit_pose.pose.orientation.x, fruit_pose.pose.orientation.y, fruit_pose.pose.orientation.z,
+      fruit_pose.pose.orientation.w);
+
+  double roll, pitch, yaw;
+  tf::Quaternion q;
+  q.setValue(fruit_pose.pose.orientation.x, fruit_pose.pose.orientation.y, fruit_pose.pose.orientation.z,
+             fruit_pose.pose.orientation.w);
+  tf::Matrix3x3 m(q);
+  m.getRPY(roll, pitch, yaw);
+  ROS_INFO("Before transformation  ROLL = %f; PITCH = %f; YAW = %f", roll, pitch, yaw);
+  try
+  {
+    //  listener_.transformPose(camera_frame_, ros::Time::now(), fruit_pose, "Elem_0", goal_pose); // manipulator to camera
+    listener_.transformPose("Elem_0", ros::Time::now(), fruit_pose, camera_frame_, goal_pose); // camera to manipulator
+    ROS_INFO(
+        "%s: (%.2f, %.2f. %.2f) -----> Elem_0: (%.2f, %.2f, %.2f) at time %.2f", camera_frame_.c_str(), fruit_pose.pose.position.x, fruit_pose.pose.position.y, fruit_pose.pose.position.z, goal_pose.pose.position.x, goal_pose.pose.position.y, goal_pose.pose.position.z, goal_pose.header.stamp.toSec());
+  }
+  catch (tf::TransformException& ex)
+  {
+    ROS_ERROR(
+        "Received an exception trying to transform a point from %s\" to \"Elem_0\": %s", camera_frame_.c_str(), ex.what());
+  }
+
+  ROS_INFO(
+          "Fruit pose after transformation: ((%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f %2f))", goal_pose.pose.position.x, goal_pose.pose.position.y, goal_pose.pose.position.z, goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z, goal_pose.pose.orientation.w);
+
+
+
+
+//Copy all poses of current fruit to global variable so that the move to fruit (start) state can cycle through them when grasp failed. Furthermore, moving to fruit should use the set first pose. Note, also transform pose in move to fruit (start) state. Goal pose is still hardcoded hereafter because visual servo requires  frontal view beacuse then you always know you can see the fruit without occlusion (because main rig also saw it in frontal view)--> TODO: should be able to cope with other poses given good transformations, but this is not tested yet. But then again there might be leaf occlusions from other poses.
+
+
+//geometry_msgs::PoseStamped fruit_pose;
+//fruit_pose.pose = fruit_list.Multiple_Fruits[fruit_number_].poses[pose_number_];
+
+  
+
+// TODO do transformation here where frame info is still available or pass along frame info (in any case)
+  ROS_INFO("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); 
+  geometry_msgs::PoseStamped fruit_poses_tosend[9];
+  for(int k=0 ; k<fruit_list.Multiple_Fruits[fruit_number_].poses.size() ; k++){
+ 	  
+	  geometry_msgs::PoseStamped fruit_pose_tosend;
+	  geometry_msgs::PoseStamped fruit_pose_transformed;
+	  //ROS_INFO("set camera_frame_ = /base_sensor_rig_frame");
+	  //camera_frame_ = "/base_sensor_rig_frame";
+
+	  //fruit_pose_tosend.pose = fruit_list.Multiple_Fruits[fruit_number_].poses[k];
+          fruit_pose_tosend.pose.orientation.x = fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x;
+	  fruit_pose_tosend.pose.orientation.y = fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y; 
+	  fruit_pose_tosend.pose.orientation.z = fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z;
+          fruit_pose_tosend.pose.orientation.w = fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w;
+
+
+	  fruit_pose_tosend.pose.position.x = 0;
+	  fruit_pose_tosend.pose.position.y = 0;
+	  fruit_pose_tosend.pose.position.z = 0;
+
+	  fruit_pose_tosend.header.frame_id = camera_frame_;
+  	  try
+   	  {
+
+		// Automatic transformation from /sr_tof_frame to ... frame.
+ 	   	//listener_.waitForTransform("/tcp", camera_frame_, ros::Time::now(), ros::Duration(10.0));
+    	   	//listener_.transformPose("/tcp", ros::Time::now()-ros::Duration(0.1), fruit_pose_tosend, camera_frame_, fruit_pose_transformed);   
+    	   	//listener_.transformPose("/Elem_0", ros::Time::now(), fruit_pose_tosend, camera_frame_, fruit_pose_transformed);   
+    	   	//listener_.transformPose(camera_frame_, ros::Time::now(), fruit_pose_tosend, "/Elem_0", fruit_pose_transformed);   
+	   	//listener_.transformPose("/Elem_0", ros::Time::now(), fruit_pose_tosend, "/sr_tof_frame", fruit_pose_transformed);
+	   	//listener_.transformPose("/corrected_poses_frame", ros::Time::now(), fruit_pose_tosend, camera_frame_, fruit_pose_transformed);  
+
+
+		ROS_INFO_STREAM("k: "<<k);
+		ROS_INFO_STREAM("position x : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].position.x);
+		ROS_INFO_STREAM("position y : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].position.y);
+		ROS_INFO_STREAM("position z : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].position.z);
+
+
+		/*		
+		
+		ROS_INFO_STREAM("k: "<<k);
+		ROS_INFO_STREAM("x : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x);
+		ROS_INFO_STREAM("y : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y);
+		ROS_INFO_STREAM("z : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z);
+		ROS_INFO_STREAM("w : "<<fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w);
+		ROS_INFO_STREAM("x : "<<source_pose_1[0]);
+		ROS_INFO_STREAM("y : "<<source_pose_1[1]);
+		ROS_INFO_STREAM("z : "<<source_pose_1[2]);
+		ROS_INFO_STREAM("w : "<<source_pose_1[3]);
+		
+		ROS_INFO_STREAM("x difference: "<<abs(float(fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x) - source_pose_1[0]));
+		ROS_INFO_STREAM("y difference: "<<abs(float(fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y) - source_pose_1[1]));
+		ROS_INFO_STREAM("z difference: "<<abs(float(fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z) - source_pose_1[2]));
+		ROS_INFO_STREAM("w difference: "<<abs(float(fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w) - source_pose_1[3]));
+		*/
+
+
+
+/*Transformed pose 8 from sr_tof_frame to Elem_0: (0.00, 0.50, 0.00 0.866025) ---> (-0.00, -0.26, -0.00 0.965926)
+Transformed pose 7 from sr_tof_frame to Elem_0: (0.00, 0.38, 0.00 0.923880) ---> (-0.00, -0.38, -0.00 0.923880)
+Transformed pose 6 from sr_tof_frame to Elem_0: (0.00, 0.26, 0.00 0.965926) ---> (-0.00, -0.50, -0.00 0.866025)
+Transformed pose 5 from sr_tof_frame to Elem_0: (0.00, 0.13, 0.00 0.991445) ---> (-0.00, -0.61, -0.00 0.793353)
+Transformed pose 4 from sr_tof_frame to Elem_0: (0.00, -0.50, 0.00 0.866025) ---> (0.00, 0.97, 0.00 -0.258819)
+Transformed pose 3 from sr_tof_frame to Elem_0: (0.00, -0.38, 0.00 0.923880) ---> (0.00, 0.92, 0.00 -0.382684)
+Transformed pose 2 from sr_tof_frame to Elem_0: (0.00, -0.26, 0.00 0.965926) ---> (-0.00, -0.87, -0.00 0.500000)
+Transformed pose 1 from sr_tof_frame to Elem_0: (0.00, -0.13, 0.00 0.991445) ---> (-0.00, -0.79, -0.00 0.608762)
+Transformed pose 0 from sr_tof_frame to Elem_0: (0.00, 0.00, 0.00 1.000000) ---> (-0.00, -0.71, -0.00 0.707107)
+*/
+
+		
+
+		// User transformation because we do not know the transformation between /sr_tof_frame to /corrected_poses_frame (TODO: Brute Force)
+		double source_pose_1[4]      = {0.0, 0.0, 0.0, 1.0}; // frontal pose
+		double transformed_pose_1[4] = {0.0, 0.0, -0.70, 0.70};
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_1[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_1[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_1[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_1[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_1[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_1[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_1[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_1[3]; 
+		}
+
+
+		double source_pose_2[4]      = {0.00, -0.13, 0.00, 0.99}; // -15 degree from frontal	
+		double transformed_pose_2[4] = {0.0, 0.0, -0.61, 0.79};
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_2[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_2[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_2[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_2[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_2[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_2[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_2[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_2[3]; 
+		}
+
+
+		double source_pose_3[4]      = {0.00, -0.26, 0.00, 0.966}; // -30 degree from frontal
+		double transformed_pose_3[4] = {0.00, 0.00, -0.50, 0.87};
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_3[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_3[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_3[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_3[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_3[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_3[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_3[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_3[3]; 
+		}
+
+
+		double source_pose_4[4]      = {0.00, -0.38, 0.00, 0.92}; // -45 degree from frontal
+		double transformed_pose_4[4] = {0.00, 0.00, -0.383, 0.924};
+
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_4[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_4[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_4[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_4[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_4[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_4[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_4[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_4[3]; 
+		}
+
+
+		double source_pose_5[4]      = {0.00, -0.50, 0.00, 0.86}; // -60 degree from frontal
+		double transformed_pose_5[4] = {0.00, 0.00, -0.259, 0.966};
+
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_5[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_5[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_5[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_5[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_5[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_5[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_5[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_5[3]; 
+		}
+
+
+		double source_pose_6[4]      = {0.00, 0.13, 0.00, 0.99}; // +15 degree from frontal
+		double transformed_pose_6[4] = {0.0, 0.0, 0.61, -0.79};
+
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_6[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_6[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_6[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_6[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_6[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_6[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_6[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_6[3]; 
+		}
+
+
+		double source_pose_7[4]      = {0.00, 0.26, 0.00, 0.966}; // +30 degree from frontal
+		double transformed_pose_7[4] = {0.00, 0.00, 0.50, -0.87};
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_7[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_7[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_7[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_7[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_7[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_7[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_7[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_7[3]; 
+		}
+
+
+		double source_pose_8[4]      = {0.00, 0.38, 0.00, 0.92}; // +45 degree from frontal
+		double transformed_pose_8[4] = {0.00, 0.00, 0.383, -0.924};
+
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_8[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_8[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_8[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_8[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_8[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_8[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_8[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_8[3]; 
+		}
+
+
+		double source_pose_9[4]      = {0.00, 0.50, 0.00, 0.86}; // +60 degree from frontal
+		double transformed_pose_9[4] = {0.00, 0.00, 0.26, -0.95};
+
+		if(fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.x - source_pose_9[0]) < 0.02  &&  
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.y - source_pose_9[1]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.z - source_pose_9[2]) < 0.02  &&
+		   fabs( fruit_list.Multiple_Fruits[fruit_number_].poses[k].orientation.w - source_pose_9[3]) < 0.02  )
+		{
+		   fruit_pose_transformed.pose.orientation.x = transformed_pose_9[0]; 
+           	   fruit_pose_transformed.pose.orientation.y = transformed_pose_9[1];  
+           	   fruit_pose_transformed.pose.orientation.z = transformed_pose_9[2];  
+           	   fruit_pose_transformed.pose.orientation.w = transformed_pose_9[3]; 
+		}
+
+
+
+	 
+	   	if(one_pose_)
+	  	{
+			ROS_INFO("One Pose (hardcoded) used. Transform reversed.");
+  			fruit_pose_transformed.pose.orientation.x = 0;
+  			fruit_pose_transformed.pose.orientation.y = 0;
+  			fruit_pose_transformed.pose.orientation.z = -0.7068;
+  			fruit_pose_transformed.pose.orientation.w = 0.7073;
+ 	  	}
+		  
+           	ROS_INFO("Transformed pose %i from %s to Elem_0: (%.2f, %.2f, %.2f %2f) ---> (%.2f, %.2f, %.2f %2f)", 
+	   		k,
+			camera_frame_.c_str(), 
+      	   		fruit_pose_tosend.pose.orientation.x, 
+           		fruit_pose_tosend.pose.orientation.y, 
+           		fruit_pose_tosend.pose.orientation.z, 
+           		fruit_pose_tosend.pose.orientation.w,
+      	   		fruit_pose_transformed.pose.orientation.x, 
+           		fruit_pose_transformed.pose.orientation.y, 
+           		fruit_pose_transformed.pose.orientation.z, 
+           		fruit_pose_transformed.pose.orientation.w);
+  	  }
+  	  catch (tf::TransformException& ex)
+  	  {
+    			ROS_ERROR("Received an exception trying to transform a point from %s\" to \"Elem_0\": %s", camera_frame_.c_str(), ex.what());
+			ROS_INFO("Using hardcoded position due to TF failure.");
+  			fruit_pose_transformed.pose.orientation.x = 0;
+  			fruit_pose_transformed.pose.orientation.y = 0;
+  			fruit_pose_transformed.pose.orientation.z = -0.7068;
+  			fruit_pose_transformed.pose.orientation.w = 0.7073;
+  	  }
+
+
+
+
+ 	 fruit_pose_transformed.header.frame_id 	= "/corrected_poses_frame"; 
+	 fruit_pose_transformed.header.stamp 		= fruit_list.header.stamp;
+	 fruit_poses_tosend[k] 				= fruit_pose_transformed;	
+	 std::string name 				= "fruit_pose_";
+	 name 						+= boost::to_string(k);
+	 (*data)[name] 					= fruit_pose_transformed;
+
+
+	/* Hardcoded fruit poses that overrule the poses above.
+
+	//90 degrees (front approach) -1.57 rad
+	geometry_msgs::PoseStamped fruit_pose_0;
+  	fruit_pose_0.pose.orientation.x = 0;
+  	fruit_pose_0.pose.orientation.y = 0;
+  	fruit_pose_0.pose.orientation.z = -0.7068;
+  	fruit_pose_0.pose.orientation.w = 0.7073;
+	(*data)["fruit_pose_0"] = fruit_pose_0;
+
+	//75 degrees -1.31 rad
+	geometry_msgs::PoseStamped fruit_pose_1;
+  	fruit_pose_1.pose.orientation.x = 0;
+  	fruit_pose_1.pose.orientation.y = 0;
+  	fruit_pose_1.pose.orientation.z = -0.61;
+  	fruit_pose_1.pose.orientation.w = 0.79;
+	(*data)["fruit_pose_1"] = fruit_pose_1;
+
+	//105 degrees, -1.83 rad
+	geometry_msgs::PoseStamped fruit_pose_2;
+  	fruit_pose_2.pose.orientation.x = 0;
+  	fruit_pose_2.pose.orientation.y = 0;
+  	fruit_pose_2.pose.orientation.z = -0.79;
+  	fruit_pose_2.pose.orientation.w = 0.61;
+	(*data)["fruit_pose_2"] = fruit_pose_2;
+	
+	*/
+
+
+  }
+
+
+  // Check if planning node of BGU or WUR outputs less than 3 poses, if so, fill remaining poses with frontal hardcoded ones. 
+  if(fruit_list.Multiple_Fruits[fruit_number_].poses.size() == 0)
+  {
+         ROS_INFO("Planning and Fusion only outputted 0 poses, hardcoding 3 other frontal poses."); 
+	 geometry_msgs::PoseStamped fruit_pose_transformed;
+
+  	 fruit_pose_transformed.pose.orientation.x = 0;
+  	 fruit_pose_transformed.pose.orientation.y = 0;
+  	 fruit_pose_transformed.pose.orientation.z = -0.7068;
+  	 fruit_pose_transformed.pose.orientation.w = 0.7073;
+
+	 fruit_pose_transformed.header.frame_id 	= "/corrected_poses_frame"; 
+	 fruit_pose_transformed.header.stamp 		= fruit_list.header.stamp;
+
+	 (*data)["fruit_pose_0"] 			= fruit_pose_transformed;
+	 (*data)["fruit_pose_1"] 			= fruit_pose_transformed;
+	 (*data)["fruit_pose_2"] 			= fruit_pose_transformed;
+  }
+
+  if(fruit_list.Multiple_Fruits[fruit_number_].poses.size() == 1)
+  {
+         ROS_INFO("Planning and Fusion only outputted 1 pose, hardcoding 2 other frontal poses."); 
+	 geometry_msgs::PoseStamped fruit_pose_transformed;
+
+  	 fruit_pose_transformed.pose.orientation.x = 0;
+  	 fruit_pose_transformed.pose.orientation.y = 0;
+  	 fruit_pose_transformed.pose.orientation.z = -0.7068;
+  	 fruit_pose_transformed.pose.orientation.w = 0.7073;
+
+	 fruit_pose_transformed.header.frame_id 	= "/corrected_poses_frame"; 
+	 fruit_pose_transformed.header.stamp 		= fruit_list.header.stamp;	
+
+	 (*data)["fruit_pose_1"] 			= fruit_pose_transformed;
+	 (*data)["fruit_pose_2"] 			= fruit_pose_transformed;
+  }
+ 	 
+  if(fruit_list.Multiple_Fruits[fruit_number_].poses.size() == 2)
+  {
+	 ROS_INFO("Planning and Fusion only outputted 2 poses, hardcoding 1 other frontal pose."); 
+	 geometry_msgs::PoseStamped fruit_pose_transformed;
+
+  	 fruit_pose_transformed.pose.orientation.x = 0;
+  	 fruit_pose_transformed.pose.orientation.y = 0;
+  	 fruit_pose_transformed.pose.orientation.z = -0.7068;
+  	 fruit_pose_transformed.pose.orientation.w = 0.7073;
+
+	 fruit_pose_transformed.header.frame_id 	= "/corrected_poses_frame"; 
+	 fruit_pose_transformed.header.stamp 		= fruit_list.header.stamp;
+
+	 (*data)["fruit_pose_2"] 			= fruit_pose_transformed;	
+  }
+
+  ROS_INFO("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"); 
+
+ 
+
+  // Goal orientation is hard coded here so that visual servoing starts at fruit frontal pose.
+
+  // 0 0 -1.57 (90 deg)
+  goal_pose.pose.orientation.x = 0;
+  goal_pose.pose.orientation.y = 0;
+  goal_pose.pose.orientation.z = -0.7068;
+  goal_pose.pose.orientation.w = 0.7073;
+
+  // 0 0 -1.05 (60 deg)
+  /*goal_pose.pose.orientation.x = 0;
+  goal_pose.pose.orientation.y = 0;
+  goal_pose.pose.orientation.z = -0.50;
+  goal_pose.pose.orientation.w = 0.87;*/
+
+  // R=0 P=0 Y=-0.7
+  /*goal_pose.pose.orientation.x = 0;
+  goal_pose.pose.orientation.y = 0;
+  goal_pose.pose.orientation.z = -0.34;
+  goal_pose.pose.orientation.w = 0.94;
+*/
+  // 0 0 -2.0
+  /*goal_pose.pose.orientation.x = 0;
+  goal_pose.pose.orientation.y = 0;
+  goal_pose.pose.orientation.z = -0.84;
+  goal_pose.pose.orientation.w = 0.54;
+  */
+
+
+   ROS_INFO(
+          "Fruit pose after hardcoding orientation: ((%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f %2f))", goal_pose.pose.position.x, goal_pose.pose.position.y, goal_pose.pose.position.z, goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z, goal_pose.pose.orientation.w);
+
+  double ang[3];
+  double quat[4];
+  double dcm[9];
+  ang[0] = 0;
+  ang[1] = 0;
+  ang[2] = 0;
+
+  quat[0] = goal_pose.pose.orientation.w;
+  quat[1] = goal_pose.pose.orientation.x;
+  quat[2] = goal_pose.pose.orientation.y;
+  quat[3] = goal_pose.pose.orientation.z;
+  quat2kardan(quat, ang, dcm);
+
+
+  //
+  ROS_INFO("After transformation  ROLL = %f; PITCH = %f; YAW = %f", ang[0], ang[1], ang[2]);
+
+  ang[0] = 0; //Roll
+  ang[1] = 0; //Pitch
+  ang[2] = -1.57; //Yaw
+
+  quat[0] = 0; //w  // LET OP [0]=w
+  quat[1] = 0; //x
+  quat[2] = 0; //y
+  quat[3] = 0; //z
+
+
+  // following lines using kardan2quat are not giving correct transformations
+  //kardan2quat(ang, quat, dcm);
+  //ROS_INFO("Test kardan2quat after transformation  ROLL = %.2f; PITCH = %.2f; YAW = %.2f = quat(%.2f, %.2f, %.2f %2f)",
+  //		  ang[0], ang[1], ang[2],
+  //	  quat[3], quat[0], quat[1],quat[2]); // LET OP [0]=w
+
+  // following lines using createQuaternionFromRPY are giving correct transformations
+/*
+  tf::Quaternion qa;
+  geometry_msgs::Quaternion qMsg;
+  // method to convert roll pitch yaw to quaternion!
+  qa = tf::createQuaternionFromRPY(ang[0], ang[1], ang[2]);
+  tf::quaternionTFToMsg(qa, qMsg);
+  ROS_INFO("Test after transformation  ROLL = %.2f; PITCH = %.2f; YAW = %.2f = quat(%.2f, %.2f, %.2f %2f)",
+		  ang[0], ang[1], ang[2],
+		  qMsg.x,qMsg.y,qMsg.z,qMsg.w);
+*/
+
+  //q.setValue(goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z,
+   //          goal_pose.pose.orientation.w);
+  //m.setRotation(q);
+  //m.getRPY(roll, pitch, yaw);
+  //ROS_INFO("After transformation  ROLL = %f; PITCH = %f; YAW = %f", roll, pitch, yaw);
+
+  crops_msgs::p2pGoal goal;
+  goal.goal_pose = goal_pose.pose;
+  (*data)["arm_goal"] = goal;
+
+  ROS_INFO(
+      "Fruit selected [Elem_0 frame]: ((%.2f, %.2f, %.2f), (%.2f, %.2f, %.2f %2f))", goal.goal_pose.position.x, goal.goal_pose.position.y, goal.goal_pose.position.z, goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z, goal_pose.pose.orientation.w);
+
+  return "Fruit selected";
+}
+

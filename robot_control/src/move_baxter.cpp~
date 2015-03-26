@@ -1,0 +1,29 @@
+#include <baxter/DoDishesAction.h>
+#include <actionlib/server/simple_action_server.h>
+
+typedef actionlib::SimpleActionServer<baxter::MoveArm> Server;
+
+std::string left_or_right;
+
+void execute(const chores::MoveArmConstPtr& goal, Server* action_server)
+{
+
+
+  action_server->setSucceeded();
+
+
+}
+
+int main(int argc, char** argv)
+{
+  ros::init(argc, argv, "");
+  ros::NodeHandle node_handle;
+    
+  left_or_right = argv[0];
+  
+  Server server(node_handle, ros::this_node::getName().c_str(), boost::bind(&execute, _1, &server), false);
+  server.start();
+  
+  ros::spin();
+  return 0;
+}

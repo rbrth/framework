@@ -1,0 +1,44 @@
+#include "ros/ros.h"
+#include <visual_servo_control/request_servo_velocity_vector.h>
+#include <vector>
+
+int main(int argc, char **argv)
+{
+     ros::init(argc, argv, "cycle_node");
+     ros::NodeHandle n;
+     ros::ServiceClient client = n.serviceClient<visual_servo_control::request_servo_velocity_vector>("/visual_servo_control/request_servo_velocity_vector");
+  
+     bool first = true;
+     ros::Rate rate(10.0);
+     while (n.ok())
+     {
+          std::string request_message;
+          if(first)
+          {
+               request_message = "initialize";
+               visual_servo_control::request_servo_velocity_vector srv;  
+               srv.request.request_message = request_message; 
+               client.call(srv);
+               first = false;
+          }
+          else
+          {
+               request_message = "cycle";
+               visual_servo_control::request_servo_velocity_vector srv;  
+               srv.request.request_message = request_message;  
+                                   
+               if (client.call(srv))
+               {                
+                    std::vector<double> velocity_vector(srv.response.servo_velocity_vector );
+		          ROS_INFO("Velocity vector has been recieved: %f %f %f %f %f %f", velocity_vector[0] , velocity_vector[1] , velocity_vector[2] , velocity_vector[3] , velocity_vector[4] , velocity_vector[5] );
+               }
+               else
+               {
+                   ROS_INFO("Could not call service.");
+               }
+          }
+          ros::spinOnce();
+          rate.sleep();
+     }     
+     return 0;
+}

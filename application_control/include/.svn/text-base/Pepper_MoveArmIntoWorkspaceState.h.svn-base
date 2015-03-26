@@ -1,0 +1,29 @@
+#include <ros/ros.h>
+#include <crops_msgs/p2pAction.h>
+#include <crops_state_machine/SimpleActionState.h>
+#include <crops_msgs/manipulatorState.h>
+#include <XmlRpcValue.h>
+
+
+#ifndef PEPPER_MOVEARMINTOWORKSPACESTATE_H_
+#define PEPPER_MOVEARMINTOWORKSPACESTATE_H_
+
+class Pepper_MoveArmIntoWorkspaceState : public SimpleActionState<crops_msgs::p2pAction, crops_msgs::p2pGoal>
+{
+private:
+  bool xpc_target_; //xpc target flag
+  ros::NodeHandle n;
+  ros::Publisher PubManipulatorState;
+  bool collisionChecked;
+  XmlRpc::XmlRpcValue home_pos_;
+public:
+  Pepper_MoveArmIntoWorkspaceState();
+  virtual ~Pepper_MoveArmIntoWorkspaceState();
+   crops_msgs::p2pGoal determineGoal();
+  std::string moveArm();
+  void feedbackCb(const crops_msgs::p2pFeedbackConstPtr feedback);
+  std::string execute(std::map<std::string, boost::any> * data);
+  crops_msgs::Statistics stat_msg_;
+};
+
+#endif /* PEPPER_MOVEARMINTOWORKSPACESTATE_H_ */

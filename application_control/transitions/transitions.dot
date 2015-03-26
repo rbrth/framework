@@ -1,0 +1,15 @@
+digraph{
+ColdBootState->ColdBootState [ label="not ready" ];
+ColdBootState->ReadyState [ label="ready" ];
+ReadyState->ReadyState [ label="not ready" ];
+ReadyState->ScanPlantState [ label="start" ];
+MoveToHomeState->ColdBootState [ label="error" ];
+MoveToHomeState->ScanPlantState [ label="goal reached" ];
+MoveToHomeState->ColdBootState [ label="goal not reached" ];
+ScanPlantState->VisualServoState [ label="goal reached" ];
+ScanPlantState->ColdBootState [ label="goal not reached" ];
+ScanPlantState->ColdBootState [ label="error" ];
+VisualServoState->ReadyState [ label="goal reached" ];
+VisualServoState->ColdBootState [ label="error" ];
+VisualServoState->ColdBootState [ label="goal not reached" ];
+}
