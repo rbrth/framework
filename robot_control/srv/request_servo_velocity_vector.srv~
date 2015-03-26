@@ -1,3 +1,0 @@
-string request_message
----
-float64[] servo_velocity_vector
