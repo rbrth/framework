@@ -1,8 +1,0 @@
-# End Effector Status msg, digital IO's
-
-bool fruit_not_removed
-bool gripping_failed
-bool gripping_successful
-bool gripper_ready
-bool cutter_ready
-bool fruit_removed

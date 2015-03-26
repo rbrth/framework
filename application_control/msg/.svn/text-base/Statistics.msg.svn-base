@@ -1,9 +1,0 @@
-bool fruit_missed # a fruit has been missed
-bool fruit_damaged  # a fruit has been damaged
-bool fruit_harvested  # a fruit has been harvested
-uint32 fruit_count # No. of fruits found
-string start_tot_clock # "start" or "stop" total time clock
-string start_fruit_clock  # "start" or "stop" fruit time clock
-bool reset_stats # reset all statistics and clocks to zero
-
-

@@ -1,4 +1,0 @@
-# The status of the image registration procedure ToF-RGB cameras
-# {succeeded,enqueued, error, etc.}
-
-string status

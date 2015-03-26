@@ -1,4 +1,0 @@
-# message to for desired end-effector velocity for online control
-# Contact: j.baur@tum.de
-float64[6] v
-

@@ -1,4 +1,0 @@
-# the status of the entire images acquisition sequence status RGB, MultiSpectral & Registration
-# # {succeeded,enqueued, error, etc.}
-
-string status

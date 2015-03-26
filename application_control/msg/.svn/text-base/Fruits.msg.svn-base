@@ -1,4 +1,0 @@
-# A list with (x,y,z)-coordinates of fruits
-Header header
-uint32 fruit_count
-geometry_msgs/Point[] fruits

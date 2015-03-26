@@ -1,7 +1,0 @@
-# message from ROS node controller to the real time QNX control unit of the sensory rig
-# the filter wheel has N-fixed position, corresponding the center of each filter hole
-# the filters are enumerated from 0 ... N
-
-Header header
-uint32 desired_filter
-

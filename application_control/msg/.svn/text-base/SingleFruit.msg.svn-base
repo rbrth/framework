@@ -1,5 +1,0 @@
-# A single fruit with pose
-Header header
-bool FruitDetected
-geometry_msgs/Pose FruitPose
-

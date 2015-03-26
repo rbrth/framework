@@ -1,7 +1,0 @@
-# TCP Positions as control points for a TCP spline trajectory
-
-Header header
-int32 numberofsamples
-float64[] time
-geometry_msgs/Vector3[] position
-geometry_msgs/Vector3[] orientation

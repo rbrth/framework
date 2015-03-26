@@ -1,6 +1,0 @@
-# A list of poses for all detected fruits
-Header header
-int32 NumberOfFruits
-geometry_msgs/PoseArray[] Multiple_Fruits
-
-

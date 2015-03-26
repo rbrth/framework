@@ -1,6 +1,0 @@
-
-Header header
-int32 NumberOfFruits
-geometry_msgs/PoseArray[] Multiple_Fruits
-
-fruit_model[] Fruit_Loc_Arr

@@ -1,6 +1,0 @@
-# Message to be send for any device on the sensosry system & the VRMagic camera on gripper  {done, missing, failed}.
-# The messages will be published when devices are in soft_trigger/hard_trigger acquisition mode, for the users to be aware about their  images acquisition request
-# header contains the ros::time related to image request trigger
-
-Header header
-string status

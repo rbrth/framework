@@ -1,6 +1,0 @@
-# message from ROS node controller to the real time QNX control unit of the sensory rig
-# The desired direction of the ToF camera axis, the pose can be unreachable,  
-# but the 3D point will define the camera orientation
-
-geometry_msgs/Pose desired_cam_axis_direction
-

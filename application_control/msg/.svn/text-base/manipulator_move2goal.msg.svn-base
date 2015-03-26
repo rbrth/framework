@@ -1,8 +1,0 @@
-# message from a ROS node to the real time control unit of the arm
-geometry_msgs/Pose pose
-float64 desired_time
-# if true, the physical manipulator will move; if false, only the visualized manipulator will move
-bool use_hardware #todo -> delete
-geometry_msgs/Point stem_pos
-int8 pathMode
-
